@@ -2,7 +2,7 @@
 
 ## Note
 
-You will need access to a CAPI management cluster to submit the following repo's code.
+You will need access to a CAPI management cluster to use the following role.
 
 To bootstrap a CAPI management cluster please look at the following repo [NeSI RDC CAPI Management Cluster](https://github.com/nesi/nesi.rdc.kind-bootstrap-capi)
 
@@ -17,12 +17,3 @@ If the variable `cluster_max_worker_count` is greater then `cluster_worker_count
 If you have access to GPU flavor's within your RDC project space then you will need to set the variable `enable_gpu_nodes` to `true`
 
 This will deploy a GPU node with the flavor `gpu1.44cpu240ram.a40.1g.48gb` and add it to the workload cluster
-
-The following GPU CAPI images are avaliable:
-
-``` { .sh }
-Rocky 8.9
-
-rocky-89-kube-nvidia-v1.27.7
-
-```
