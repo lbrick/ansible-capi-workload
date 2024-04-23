@@ -1,0 +1,12 @@
+---
+- name: Workload | Check mandatory variables are defined
+  assert:
+    that:
+      - cluster_rdc_project is defined
+      - cluster_rdc_project != 'NeSI_RDC_PROJECT_NAME'
+      - cluster_name is defined
+      - cluster_name != 'CAPI_CLUSTER_NAME'
+      - capi_management_cluster is defined
+      - capi_management_cluster != 'MANGEMENT_CLUSTER_NAME'
+      - openstack_ssh_key is defined
+      - openstack_ssh_key != 'NeSI_RDC_KEYPAIR_NAME'

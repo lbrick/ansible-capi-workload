@@ -1,0 +1,58 @@
+---
+- name: Workload | Check vars are set
+  include_tasks: check-vars.yml
+
+- name: Workload | Prerequisites
+  include_tasks: prerequisites.yml
+
+- name: Workload | Create and initialize clusterctl and cloud manager
+  block:
+    - name: Workload | Read clouds.yaml
+      slurp:
+        src: "{{ clouds_yaml_location }}"
+      register: file_content
+
+    - name: Workload | Decode the base64 encoded version of the YAML file and assign it to a variable
+      set_fact:
+        file_contents: "{{ file_content['content'] | b64decode | from_yaml }}"
+
+    - name: Workload | Check cluster {{ cluster_name }} is initialized
+      shell: >-
+        kubectl get cluster {{ cluster_name }}
+      register: cluster_intialized
+      ignore_errors: true
+
+    - name: Workload | Create and initialize clusterctl
+      include_tasks: configure-install-clusterctl.yml
+      when: cluster_intialized.stdout == ''
+
+    - name: Workload | Create and initialize cloud manager
+      include_tasks: install-cloud-manager.yml
+      when: cluster_intialized.stdout == ''
+
+    - name: Workload GPU | Setting GPU Enabled boolean to {{ enable_gpu_nodes }}
+      set_fact:
+        enable_gpu_worker: "{{ enable_gpu_nodes }}"
+
+    - name: Workload GPU | Deploy extra node
+      block:  
+        - name: Workload GPU | Prerequisites
+          include_tasks: gpu-prerequisites.yml
+
+        - name: Workload GPU | Deploy GPU node
+          include_tasks: deploy-gpu-node.yml
+
+        - name: Workload GPU | Deploy GPU operator helm chart
+          include_tasks: gpu-helm-chart.yml
+      when:
+        - "enable_gpu_worker|default(false)|bool == true"
+
+    - name: Workload | Create and initialize auto-scaler
+      include_tasks: install-autoscaler.yml
+      when:
+      - cluster_intialized.stdout == ''
+      - cluster_worker_count < cluster_max_worker_count
+  when:
+    - clouds_yaml_file.stat.exists
+
+
