@@ -3,14 +3,6 @@
   set_fact:
     enable_oidc_auth: "{{ kube_oidc_auth }}"
 
-- name: Workload | Create OIDC clusterctl template
-  template:
-    src: "cluster-template-oidc.yml.j2"
-    dest: "{{ tmp_dir }}/cluster-template.yml"
-    mode: 0640
-  when:
-    - "enable_oidc_auth|default(false)|bool == true"
-
 - name: Workload | Create clusterctl template
   template:
     src: "cluster-template.yml.j2"

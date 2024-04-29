@@ -79,12 +79,6 @@ spec:
       apiServer:
         extraArgs:
           cloud-provider: external
-          oidc-issuer-url: "{{ kube_oidc_url }}"
-          oidc-client-id: "{{ kube_oidc_client_id }}"
-          oidc-username-claim: "{{ kube_oidc_username_claim }}"
-          oidc-groups-claim: "{{ kube_oidc_groups_claim }}"
-          oidc-username-prefix: "{{ kube_oidc_username_prefix }}"
-          oidc-groups-prefix: "{{ kube_oidc_groups_prefix }}"
       controllerManager:
         extraArgs:
           cloud-provider: external

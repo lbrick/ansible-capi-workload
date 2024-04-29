@@ -79,6 +79,14 @@ spec:
       apiServer:
         extraArgs:
           cloud-provider: external
+{% if enable_oidc_auth %}
+          oidc-issuer-url: "{{ kube_oidc_url }}"
+          oidc-client-id: "{{ kube_oidc_client_id }}"
+          oidc-username-claim: "{{ kube_oidc_username_claim }}"
+          oidc-groups-claim: "{{ kube_oidc_groups_claim }}"
+          oidc-username-prefix: "{{ kube_oidc_username_prefix }}"
+          oidc-groups-prefix: "{{ kube_oidc_groups_prefix }}"
+{% endif %}
       controllerManager:
         extraArgs:
           cloud-provider: external
@@ -143,6 +151,10 @@ spec:
       ports:
       - network:
           name: {{ cluster_network_name }}
+{% if control_plane_volume_size > 30 %}
+      rootVolume:
+          diskSize: {{ control_plane_volume_size }}
+{% endif %}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
 kind: OpenStackMachineTemplate
@@ -163,3 +175,7 @@ spec:
       ports:
       - network:
           name: {{ cluster_network_name }}
+{% if worker_volume_size > 30 %}
+      rootVolume:
+          diskSize: {{ worker_volume_size }}
+{% endif %}
