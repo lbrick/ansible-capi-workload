@@ -8,8 +8,6 @@
     src: "cluster-template.yml.j2"
     dest: "{{ tmp_dir }}/cluster-template.yml"
     mode: 0640
-  when:
-    - "enable_oidc_auth|default(false)|bool == false"
 
 - name: Workload | Copy create_base64_ca_cert.sh
   copy:
