@@ -52,6 +52,11 @@
       when:
       - cluster_intialized.stdout == ''
       - cluster_worker_count < cluster_max_worker_count
+
+    - name: Workload | Create and initialize cluster heathchecks
+      include_tasks: install-heathchecks.yml
+      when:
+      - cluster_intialized.stdout == ''
   when:
     - clouds_yaml_file.stat.exists
 

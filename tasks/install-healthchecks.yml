@@ -1,0 +1,20 @@
+---
+- name: Workload | Create control plane healthcheck template
+  template:
+    src: "healthcheck-control-plane.yml.j2"
+    dest: "{{ tmp_dir }}/healthcheck-control-plane.yml"
+    mode: 0640
+
+- name: Workload | Deploy control plane healthcheck for {{ cluster_name }}
+  shell: >-
+    kubectl apply -f {{ tmp_dir }}/healthcheck-control-plane.yml
+
+- name: Workload | Create worker healthcheck template
+  template:
+    src: "healthcheck-worker.yml.j2"
+    dest: "{{ tmp_dir }}/healthcheck-worker.yml"
+    mode: 0640
+
+- name: Workload | Deploy worker healthcheck for {{ cluster_name }}
+  shell: >-
+    kubectl apply -f {{ tmp_dir }}/healthcheck-worker.yml
