@@ -47,6 +47,10 @@
       when:
         - "enable_gpu_worker|default(false)|bool == true"
 
+    - name: Workload | Create kube namespace for {{ cluster_name }}
+      shell: >-
+        kubectl create namespace {{ cluster_name }} --dry-run=client -o yaml | kubectl apply -f -
+
     - name: Workload | Create and initialize auto-scaler
       include_tasks: install-autoscaler.yml
       when:

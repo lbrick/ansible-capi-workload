@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cluster-autoscaler-{{ cluster_name }} 
-  namespace: {{ cluster_name }}
+  namespace: {{ cluster_ns }}
   labels:
     app: cluster-autoscaler
 spec:
@@ -23,15 +23,16 @@ spec:
         - /cluster-autoscaler
         args:
         - --cloud-provider=clusterapi
-        - --cloud-config=/mnt/kubeconfig
+        - --kubeconfig=/mnt/value
+        - --clusterapi-cloud-config-authoritative
         volumeMounts:
-        - name: mgnt-kubeconfig
+        - name: worker-kubeconfig
           mountPath: /mnt
           readOnly: true
       volumes:
-      - name: mgnt-kubeconfig
+      - name: worker-kubeconfig
         secret:
-          secretName: kubeconfig
+          secretName: {{ cluster_name }}-kubeconfig
       serviceAccountName: cluster-autoscaler
       terminationGracePeriodSeconds: 10
       tolerations:
@@ -49,7 +50,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: cluster-autoscaler
-  namespace: {{ cluster_name }}
+  namespace: {{ cluster_ns }}
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -62,13 +63,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: cluster-autoscaler
-  namespace: {{ cluster_name }}
+  namespace: {{ cluster_ns }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cluster-autoscaler
-  namespace: {{ cluster_name }}
+  namespace: {{ cluster_ns }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
