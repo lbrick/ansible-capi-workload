@@ -54,7 +54,7 @@
       - cluster_worker_count < cluster_max_worker_count
 
     - name: Workload | Create and initialize cluster heathchecks
-      include_tasks: install-heathchecks.yml
+      include_tasks: install-healthchecks.yml
       when:
       - cluster_intialized.stdout == ''
   when:
