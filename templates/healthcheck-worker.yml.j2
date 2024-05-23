@@ -2,6 +2,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineHealthCheck
 metadata:
   name: {{ cluster_name }}-node-unhealthy-5m
+  namespace: {{ cluster_name }}
 spec:
   clusterName: {{ cluster_name }}
   # (Optional) maxUnhealthy prevents further remediation if the cluster is already partially unhealthy
