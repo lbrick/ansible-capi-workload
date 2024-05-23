@@ -1,0 +1,10 @@
+---
+- name: Workload | Create metrics server template
+  template:
+    src: "metrics-server.yml.j2"
+    dest: "{{ tmp_dir }}/metrics-server.yml"
+    mode: 0640
+
+- name: Workload | Deploy metrics server for {{ cluster_name }}  
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/metrics-server.yml

@@ -61,6 +61,11 @@
       include_tasks: install-healthchecks.yml
       when:
       - cluster_intialized.stdout == ''
+
+    - name: Workload | Create and initialize cluster metrics server
+      include_tasks: install-metrics-server.yml
+      when:
+      - cluster_intialized.stdout == ''
   when:
     - clouds_yaml_file.stat.exists
 
