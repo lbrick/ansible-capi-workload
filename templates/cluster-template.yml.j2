@@ -126,7 +126,7 @@ spec:
   identityRef:
     kind: Secret
     name: ${CLUSTER_NAME}-cloud-config
-  managedSecurityGroups: true
+  managedSecurityGroups: {{ capi_managed_secgroups }}
   network:
     name: {{ cluster_network_name }}
   router: 
@@ -148,6 +148,9 @@ spec:
       sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
       securityGroups:
       - name: default
+{% if capi_managed_secgroups == false %}
+      - name: k8s-cluster-default-{{ cluster_name }}-secgroup-controlplane
+{% endif %}
       ports:
       - network:
           name: {{ cluster_network_name }}
@@ -172,6 +175,9 @@ spec:
       sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
       securityGroups:
       - name: default
+{% if capi_managed_secgroups == false %}
+      - name: k8s-cluster-default-{{ cluster_name }}-secgroup-worker
+{% endif %}
       ports:
       - network:
           name: {{ cluster_network_name }}
