@@ -1,32 +1,59 @@
 ---
-- name: Workload | Check vars are set
+- name: Check vars are set
   include_tasks: check-vars.yml
 
-- name: Workload | Prerequisites
+- name: Prerequisites
   include_tasks: prerequisites.yml
 
-- name: Workload | Create and initialize clusterctl and cloud manager
+- name: Create and initialize clusterctl and cloud manager
   block:
-    - name: Workload | Read clouds.yaml
+
+    - name: Deployed ansible managed CAPI security groups
+      block:  
+        - name: Create Kubernetes control plane security group
+          openstack.cloud.security_group:
+            cloud: "{{ yaml_openstack_cloud }}"
+            state: present
+            name: k8s-cluster-default-{{ cluster_name }}-secgroup-controlplane
+            description: Ansible Cluster API managed group
+          register: controlplane_secgroup
+
+        - name: Create Kubernetes worker security group
+          openstack.cloud.security_group:
+            cloud: "{{ yaml_openstack_cloud }}"
+            state: present
+            name: k8s-cluster-default-{{ cluster_name }}-secgroup-worker
+            description: Ansible Cluster API managed group
+          register: worker_secgroup
+
+        - name: Configure Kubernetes control plane security group
+          include_tasks: secgroups-control-plane.yml
+
+        - name: Configure Kubernetes worker security group
+          include_tasks: secgroups-worker.yml
+      when:
+        - "capi_managed_secgroups|default(true)|bool == false"
+
+    - name: Read clouds.yaml
       slurp:
         src: "{{ clouds_yaml_location }}"
       register: file_content
 
-    - name: Workload | Decode the base64 encoded version of the YAML file and assign it to a variable
+    - name: Decode the base64 encoded version of the YAML file and assign it to a variable
       set_fact:
         file_contents: "{{ file_content['content'] | b64decode | from_yaml }}"
 
-    - name: Workload | Check cluster {{ cluster_name }} is initialized
+    - name: Check cluster {{ cluster_name }} is initialized
       shell: >-
         kubectl get cluster {{ cluster_name }}
       register: cluster_intialized
       ignore_errors: true
 
-    - name: Workload | Create and initialize clusterctl
+    - name: Create and initialize clusterctl
       include_tasks: configure-install-clusterctl.yml
       when: cluster_intialized.stdout == ''
 
-    - name: Workload | Create and initialize cloud manager
+    - name: Create and initialize cloud manager
       include_tasks: install-cloud-manager.yml
       when: cluster_intialized.stdout == ''
 
@@ -47,22 +74,22 @@
       when:
         - "enable_gpu_worker|default(false)|bool == true"
 
-    - name: Workload | Create kube namespace for {{ cluster_name }}
+    - name: Create kube namespace for {{ cluster_name }}
       shell: >-
         kubectl create namespace {{ cluster_name }} --dry-run=client -o yaml | kubectl apply -f -
 
-    - name: Workload | Create and initialize auto-scaler
+    - name: Create and initialize auto-scaler
       include_tasks: install-autoscaler.yml
       when:
       - cluster_intialized.stdout == ''
       - cluster_worker_count < cluster_max_worker_count
 
-    - name: Workload | Create and initialize cluster heathchecks
+    - name: Create and initialize cluster heathchecks
       include_tasks: install-healthchecks.yml
       when:
       - cluster_intialized.stdout == ''
 
-    - name: Workload | Create and initialize cluster metrics server
+    - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml
       when:
       - cluster_intialized.stdout == ''
