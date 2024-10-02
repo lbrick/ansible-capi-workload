@@ -86,3 +86,5 @@ kube_oidc_groups_claim: groups
 kube_oidc_groups_prefix: 'oidc:'
 # Copy oidc CA file to the following path if needed
 kube_oidc_ca_file: "{{ ca_cert_file }}"
+
+preKubeadmCommands: []
