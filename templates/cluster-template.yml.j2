@@ -28,6 +28,12 @@ spec:
         - {{ preKubeadmCommand }}
 {% endfor %}
 {% endif %}
+{% if postKubeadmCommands | length > 0 %}
+      postKubeadmCommands:
+{% for postKubeadmCommand in postKubeadmCommands %}
+        - {{ postKubeadmCommand }}
+{% endfor %}
+{% endif %}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
