@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-app
+  namespace: default
+  labels:
+    app: overprovisioning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: overprovisioning
+  template:
+    metadata:
+      labels:
+        app: overprovisioning
+    spec:
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause
+        resources:
+          requests:
+            cpu: "1"
+            memory: "500Mi"
+          limits:
+            cpu: "1"
+            memory: "500Mi"
+      priorityClassName: low-priority

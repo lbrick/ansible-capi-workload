@@ -1,18 +1,40 @@
 ---
-- name: Workload | Get CAPI Managment cluster kubeconfig
-  shell: >-
-    kubectl get secret {{ capi_management_cluster }}-kubeconfig -o jsonpath='{.data.value}' | base64 --decode >> {{ tmp_dir }}/mgnt-kubeconfig
+- name: Create high pod priority class template
+  template:
+    src: "high-prority-class.yml.j2"
+    dest: "{{ tmp_dir }}/high-prority-class.yml"
+    mode: 0640
 
-- name: Workload | Set CAPI Managment cluster kubeconfig as secret
+- name: Deploy high pod priority class for {{ cluster_name }}
   shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig --from-file=kubeconfig={{ tmp_dir }}/mgnt-kubeconfig -n kube-system
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-prority-class.yml
 
-- name: Workload | Create auto-scaler deployment template
+- name: Create low pod priority class template
+  template:
+    src: "low-prority-class.yml.j2"
+    dest: "{{ tmp_dir }}/low-prority-class.yml"
+    mode: 0640
+
+- name: Deploy low pod priority class for {{ cluster_name }}
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-prority-class.yml
+
+- name: Create auto-scaler deployment template
   template:
     src: "autoscaler-deployment.yml.j2"
     dest: "{{ tmp_dir }}/autoscaler-deployment.yml"
     mode: 0640
 
-- name: Workload | Deploy auto-scaler for {{ cluster_name }}
+- name: Deploy auto-scaler for {{ cluster_name }}
   shell: >-
     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/autoscaler-deployment.yml
+
+- name: Create dummy pod template
+  template:
+    src: "dummy-pod.yml.j2"
+    dest: "{{ tmp_dir }}/dummy-pod.yml"
+    mode: 0640
+
+- name: Deploy dummy pod for {{ cluster_name }}
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
