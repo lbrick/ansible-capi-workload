@@ -53,9 +53,11 @@
       include_tasks: configure-install-clusterctl.yml
       when: cluster_intialized.stdout == ''
 
+    - name: Install CNI
+      include_tasks: install-cni.yml
+
     - name: Create and initialize cloud manager
       include_tasks: install-cloud-manager.yml
-      when: cluster_intialized.stdout == ''
 
     - name: Workload GPU | Setting GPU Enabled boolean to {{ enable_gpu_nodes }}
       set_fact:
@@ -74,25 +76,16 @@
       when:
         - "enable_gpu_worker|default(false)|bool == true"
 
-    - name: Create kube namespace for {{ cluster_name }}
-      shell: >-
-        kubectl create namespace {{ cluster_name }} --dry-run=client -o yaml | kubectl apply -f -
-
     - name: Create and initialize auto-scaler
       include_tasks: install-autoscaler.yml
       when:
-      - cluster_intialized.stdout == ''
       - cluster_worker_count < cluster_max_worker_count
 
     - name: Create and initialize cluster heathchecks
       include_tasks: install-healthchecks.yml
-      when:
-      - cluster_intialized.stdout == ''
 
     - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml
-      when:
-      - cluster_intialized.stdout == ''
   when:
     - clouds_yaml_file.stat.exists
 

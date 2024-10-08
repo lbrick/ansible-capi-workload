@@ -1,48 +1,58 @@
 ---
-- name: Get CAPI Managment cluster kubeconfig
+- name: Check for auto-scaler pods
   shell: >-
-    kubectl get secret {{ capi_management_cluster }}-kubeconfig -o jsonpath='{.data.value}' | base64 --decode >> {{ tmp_dir }}/mgnt-kubeconfig
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig get pods -A | grep -c cluster-autoscaler
+  register: autoscaler_pods
+  ignore_errors: true
 
-- name: Set CAPI Managment cluster kubeconfig as secret
-  shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig --from-file=kubeconfig={{ tmp_dir }}/mgnt-kubeconfig -n kube-system
+- name: Workload | Install and configure cluster auto-scaler
+  block: 
+    - name: Get CAPI Managment cluster kubeconfig
+      shell: >-
+        kubectl get secret {{ capi_management_cluster }}-kubeconfig -o jsonpath='{.data.value}' | base64 --decode >> {{ tmp_dir }}/mgnt-kubeconfig
 
-- name: Create auto-scaler deployment template
-  template:
-    src: "autoscaler-deployment.yml.j2"
-    dest: "{{ tmp_dir }}/autoscaler-deployment.yml"
-    mode: 0640
+    - name: Set CAPI Managment cluster kubeconfig as secret
+      shell: >-
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig --from-file=kubeconfig={{ tmp_dir }}/mgnt-kubeconfig -n kube-system
 
-- name: Deploy auto-scaler for {{ cluster_name }}
-  shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/autoscaler-deployment.yml
+    - name: Create auto-scaler deployment template
+      template:
+        src: "autoscaler-deployment.yml.j2"
+        dest: "{{ tmp_dir }}/autoscaler-deployment.yml"
+        mode: 0640
 
-- name: Create high pod priority class template
-  template:
-    src: "high-priority-class.yml.j2"
-    dest: "{{ tmp_dir }}/high-priority-class.yml"
-    mode: 0640
+    - name: Deploy auto-scaler for {{ cluster_name }}
+      shell: >-
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/autoscaler-deployment.yml
 
-- name: Deploy high pod priority class for {{ cluster_name }}
-  shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-priority-class.yml
+    - name: Create high pod priority class template
+      template:
+        src: "high-priority-class.yml.j2"
+        dest: "{{ tmp_dir }}/high-priority-class.yml"
+        mode: 0640
 
-- name: Create low pod priority class template
-  template:
-    src: "low-priority-class.yml.j2"
-    dest: "{{ tmp_dir }}/low-priority-class.yml"
-    mode: 0640
+    - name: Deploy high pod priority class for {{ cluster_name }}
+      shell: >-
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-priority-class.yml
 
-- name: Deploy low pod priority class for {{ cluster_name }}
-  shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-priority-class.yml
+    - name: Create low pod priority class template
+      template:
+        src: "low-priority-class.yml.j2"
+        dest: "{{ tmp_dir }}/low-priority-class.yml"
+        mode: 0640
 
-- name: Create dummy pod template
-  template:
-    src: "dummy-pod.yml.j2"
-    dest: "{{ tmp_dir }}/dummy-pod.yml"
-    mode: 0640
+    - name: Deploy low pod priority class for {{ cluster_name }}
+      shell: >-
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-priority-class.yml
 
-- name: Deploy dummy pod for {{ cluster_name }}
-  shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
+    - name: Create dummy pod template
+      template:
+        src: "dummy-pod.yml.j2"
+        dest: "{{ tmp_dir }}/dummy-pod.yml"
+        mode: 0640
+
+    - name: Deploy dummy pod for {{ cluster_name }}
+      shell: >-
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
+  when:
+    - autoscaler_pods.stdout != "1"
