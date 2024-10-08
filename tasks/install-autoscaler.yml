@@ -1,23 +1,11 @@
 ---
-- name: Create high pod priority class template
-  template:
-    src: "high-prority-class.yml.j2"
-    dest: "{{ tmp_dir }}/high-prority-class.yml"
-    mode: 0640
-
-- name: Deploy high pod priority class for {{ cluster_name }}
+- name: Get CAPI Managment cluster kubeconfig
   shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-prority-class.yml
+    kubectl get secret {{ capi_management_cluster }}-kubeconfig -o jsonpath='{.data.value}' | base64 --decode >> {{ tmp_dir }}/mgnt-kubeconfig
 
-- name: Create low pod priority class template
-  template:
-    src: "low-prority-class.yml.j2"
-    dest: "{{ tmp_dir }}/low-prority-class.yml"
-    mode: 0640
-
-- name: Deploy low pod priority class for {{ cluster_name }}
+- name: Set CAPI Managment cluster kubeconfig as secret
   shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-prority-class.yml
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig --from-file=kubeconfig={{ tmp_dir }}/mgnt-kubeconfig -n kube-system
 
 - name: Create auto-scaler deployment template
   template:
@@ -28,6 +16,26 @@
 - name: Deploy auto-scaler for {{ cluster_name }}
   shell: >-
     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/autoscaler-deployment.yml
+
+- name: Create high pod priority class template
+  template:
+    src: "high-priority-class.yml.j2"
+    dest: "{{ tmp_dir }}/high-priority-class.yml"
+    mode: 0640
+
+- name: Deploy high pod priority class for {{ cluster_name }}
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-priority-class.yml
+
+- name: Create low pod priority class template
+  template:
+    src: "low-priority-class.yml.j2"
+    dest: "{{ tmp_dir }}/low-priority-class.yml"
+    mode: 0640
+
+- name: Deploy low pod priority class for {{ cluster_name }}
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-priority-class.yml
 
 - name: Create dummy pod template
   template:
