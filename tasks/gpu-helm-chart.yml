@@ -1,13 +1,13 @@
 ---
-- name: Workload GPU  | Add Nvidia helm chart repo
+- name: Add Nvidia helm chart repo
   shell: >-
     helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig repo add nvidia https://nvidia.github.io/gpu-operator
 
-- name: Workload GPU  | Run helm repo update
+- name: Run helm repo update
   shell: >-
     helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig repo update
 
-- name: Workload GPU  | Install Nvidia gpu-operator
+- name: Install Nvidia gpu-operator
   shell: >-
     helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig install gpu-operator --wait \
     --create-namespace nvidia/gpu-operator \

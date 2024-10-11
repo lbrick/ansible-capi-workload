@@ -1,60 +1,55 @@
 ---
-- name: Workload | Setting OIDC auth boolean to {{ kube_oidc_auth }}
+- name: Setting OIDC auth boolean to {{ kube_oidc_auth }}
   set_fact:
     enable_oidc_auth: "{{ kube_oidc_auth }}"
 
-- name: Workload | Create clusterctl template
+- name: Create clusterctl template
   template:
     src: "cluster-template.yml.j2"
     dest: "{{ tmp_dir }}/cluster-template.yml"
     mode: 0640
-    
-- name: Sleep for 300 seconds and continue with play
-  ansible.builtin.wait_for:
-    timeout: 300
-  delegate_to: localhost
 
-- name: Workload | Copy create_base64_ca_cert.sh
+- name: Copy create_base64_ca_cert.sh
   copy:
     src: "files/create_base64_ca_cert.sh"
     dest: "{{ tmp_dir }}/create_base64_ca_cert.sh"
     mode: 0770
 
-- name: Workload | Run create_base64_ca_cert for {{ cluster_name }}
+- name: Run create_base64_ca_cert for {{ cluster_name }}
   shell: >-
     {{ tmp_dir }}/create_base64_ca_cert.sh \
     {{ clouds_yaml_location }} openstack
   register: base64_ca_cert
 
-- name: Workload | Copy create_base64_yaml.sh
+- name: Copy create_base64_yaml.sh
   copy:
     src: "files/create_base64_yaml.sh"
     dest: "{{ tmp_dir }}/create_base64_yaml.sh"
     mode: 0770
 
-- name: Workload | Run create_base64_yaml for {{ cluster_name }}
+- name: Run create_base64_yaml for {{ cluster_name }}
   shell: >-
     {{ tmp_dir }}/create_base64_yaml.sh \
     {{ clouds_yaml_location }} openstack
   register: base64_cloud_yaml
 
-- name: Workload | Create clusterctl config
+- name: Create clusterctl config
   template:
     src: "openstack-cluster-config.yml.j2"
     dest: "{{ tmp_dir }}/{{ cluster_name }}-openstack-cluster-config.yml"
     mode: 0640
 
-- name: Workload | Generate clusterctl yaml for {{ cluster_name }}
+- name: Generate clusterctl yaml for {{ cluster_name }}
   shell: >-
     clusterctl generate cluster {{ cluster_name }} \
     --config {{ tmp_dir }}/{{ cluster_name }}-openstack-cluster-config.yml \
     --from {{ tmp_dir }}/cluster-template.yml > {{ tmp_dir }}/{{ cluster_name }}.yml
 
-- name: Workload | Init {{ cluster_name }} clusterctl yaml 
+- name: Init {{ cluster_name }} clusterctl yaml 
   shell: >-
     kubectl apply -f {{ tmp_dir }}/{{ cluster_name }}.yml
 
-- name: Workload | Wait for {{ cluster_name }} control plane to return true
+- name: Wait for {{ cluster_name }} control plane to return true
   shell: >-
     kubectl get kubeadmcontrolplane | grep {{ cluster_name }} | grep -c true
   register: result
@@ -62,11 +57,11 @@
   retries: 10
   delay: 30
 
-- name: Workload | Pause for {{ cluster_settle_timeout_base * cluster_control_plane_count }} minutes while cluster settles
+- name: Pause for {{ cluster_settle_timeout_base * cluster_control_plane_count }} minutes while cluster settles
   ansible.builtin.pause:
     minutes: "{{ cluster_settle_timeout_base * cluster_control_plane_count }}"
 
-- name: Workload | Get {{ cluster_name }} cluster kubeconfig yaml 
+- name: Get {{ cluster_name }} cluster kubeconfig yaml 
   shell: >-
     kubectl get secret -n {{ cluster_namespace }} {{ cluster_name }}-kubeconfig 
     -o jsonpath='{.data.value}'|base64 -d > {{ tmp_dir }}/{{ cluster_name }}.kubeconfig
