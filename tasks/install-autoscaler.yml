@@ -5,7 +5,7 @@
   register: autoscaler_pods
   ignore_errors: true
 
-- name: Workload | Install and configure cluster auto-scaler
+- name: Install and configure cluster auto-scaler
   block: 
     - name: Get CAPI Managment cluster kubeconfig
       shell: >-
@@ -50,9 +50,11 @@
         src: "dummy-pod.yml.j2"
         dest: "{{ tmp_dir }}/dummy-pod.yml"
         mode: 0640
+      when: autoscaler_overprovision|default(false)|bool == true
 
     - name: Deploy dummy pod for {{ cluster_name }}
       shell: >-
         kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
+      when: autoscaler_overprovision|default(false)|bool == true
   when:
     - autoscaler_pods.stdout != "1"

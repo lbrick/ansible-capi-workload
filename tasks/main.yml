@@ -59,19 +59,19 @@
     - name: Create and initialize cloud manager
       include_tasks: install-cloud-manager.yml
 
-    - name: Workload GPU | Setting GPU Enabled boolean to {{ enable_gpu_nodes }}
+    - name: Setting GPU Enabled boolean to {{ enable_gpu_nodes }}
       set_fact:
         enable_gpu_worker: "{{ enable_gpu_nodes }}"
 
-    - name: Workload GPU | Deploy extra node
+    - name: Deploy extra node
       block:  
-        - name: Workload GPU | Prerequisites
+        - name: Prerequisites
           include_tasks: gpu-prerequisites.yml
 
-        - name: Workload GPU | Deploy GPU node
+        - name: Deploy GPU node
           include_tasks: deploy-gpu-node.yml
 
-        - name: Workload GPU | Deploy GPU operator helm chart
+        - name: Deploy GPU operator helm chart
           include_tasks: gpu-helm-chart.yml
       when:
         - "enable_gpu_worker|default(false)|bool == true"
