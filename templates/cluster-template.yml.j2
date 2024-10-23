@@ -18,6 +18,7 @@ spec:
       files: []
       joinConfiguration:
         nodeRegistration:
+          criSocket: {{ cri_socket }}
           kubeletExtraArgs:
             cloud-provider: external
             provider-id: openstack:///'{{ '{{' }} instance_id {{ '}}' }}'

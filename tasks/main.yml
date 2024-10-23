@@ -9,6 +9,7 @@
   block:
 
     - name: Deployed ansible managed CAPI security groups
+      delegate_to: localhost
       block:  
         - name: Create Kubernetes control plane security group
           openstack.cloud.security_group:

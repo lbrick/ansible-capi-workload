@@ -1,8 +1,8 @@
 ---
 enable_gpu_nodes: false
 
-kubernetes_version: v1.27.6
-capi_image_name: rocky-89-kube-v1.27.6 #ubuntu-2204-kube-v1.26.7-ca
+kubernetes_version: v1.28.14
+capi_image_name: rocky-9-crio-v1.28.14 #ubuntu-2204-kube-v1.26.7-ca
 
 gpu_kubernetes_version: v1.27.7
 capi_gpu_image_name: rocky-89-kube-nvidia-v1.27.7
@@ -62,6 +62,8 @@ autoscaler_image: "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
 autoscaler_overprovision: false
 
 cloud_manager_version: v1.30.0
+
+cri_socket: /var/run/crio/crio.sock
 
 # Settings related to managing the security groups with Ansible
 
