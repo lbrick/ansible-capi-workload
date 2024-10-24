@@ -9,6 +9,7 @@
   block:
 
     - name: Deployed ansible managed CAPI security groups
+      delegate_to: localhost
       block:  
         - name: Create Kubernetes control plane security group
           openstack.cloud.security_group:
@@ -45,13 +46,12 @@
 
     - name: Check cluster {{ cluster_name }} is initialized
       shell: >-
-        kubectl get cluster {{ cluster_name }}
+        kubectl get clusters | grep -c {{ cluster_name }}
       register: cluster_intialized
-      ignore_errors: true
 
     - name: Create and initialize clusterctl
       include_tasks: configure-install-clusterctl.yml
-      when: cluster_intialized.stdout == ''
+      when: cluster_intialized.stdout != "1"
 
     - name: Install CNI
       include_tasks: install-cni.yml
