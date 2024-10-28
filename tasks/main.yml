@@ -48,10 +48,11 @@
       shell: >-
         kubectl get clusters | grep -c {{ cluster_name }}
       register: cluster_intialized
+      ignore_errors: true
 
     - name: Create and initialize clusterctl
       include_tasks: configure-install-clusterctl.yml
-      when: cluster_intialized.stdout != "1"
+      when: cluster_intialized.stdout == ""
 
     - name: Install CNI
       include_tasks: install-cni.yml
