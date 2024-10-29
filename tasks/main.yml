@@ -10,6 +10,7 @@
 
     - name: Deployed ansible managed CAPI security groups
       delegate_to: localhost
+      become: false
       block:  
         - name: Create Kubernetes control plane security group
           openstack.cloud.security_group:
@@ -46,7 +47,7 @@
 
     - name: Check cluster {{ cluster_name }} is initialized
       shell: >-
-        kubectl get clusters | grep -c {{ cluster_name }}
+        kubectl get clusters | grep {{ cluster_name }}
       register: cluster_intialized
       ignore_errors: true
 
