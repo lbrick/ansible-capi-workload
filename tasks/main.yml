@@ -55,6 +55,11 @@
       include_tasks: configure-install-clusterctl.yml
       when: cluster_intialized.stdout == ""
 
+    - name: Get {{ cluster_name }} cluster kubeconfig yaml 
+      shell: >-
+        kubectl get secret -n {{ cluster_namespace }} {{ cluster_name }}-kubeconfig 
+        -o jsonpath='{.data.value}'|base64 -d > {{ tmp_dir }}/{{ cluster_name }}.kubeconfig
+
     - name: Install CNI
       include_tasks: install-cni.yml
 

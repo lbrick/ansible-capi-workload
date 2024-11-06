@@ -60,8 +60,3 @@
 - name: Pause for {{ cluster_settle_timeout_base * cluster_control_plane_count }} minutes while cluster settles
   ansible.builtin.pause:
     minutes: "{{ cluster_settle_timeout_base * cluster_control_plane_count }}"
-
-- name: Get {{ cluster_name }} cluster kubeconfig yaml 
-  shell: >-
-    kubectl get secret -n {{ cluster_namespace }} {{ cluster_name }}-kubeconfig 
-    -o jsonpath='{.data.value}'|base64 -d > {{ tmp_dir }}/{{ cluster_name }}.kubeconfig
