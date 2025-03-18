@@ -1,11 +1,6 @@
 ---
-enable_gpu_nodes: false
-
 kubernetes_version: v1.28.14
 capi_image_name: rocky-9-crio-v1.28.14 #ubuntu-2204-kube-v1.26.7-ca
-
-gpu_kubernetes_version: v1.27.7
-capi_gpu_image_name: rocky-89-kube-nvidia-v1.27.7
 
 capi_provider_version: v0.8.0
 
@@ -25,9 +20,6 @@ cluster_worker_count: 2
 cluster_max_worker_count: 3
 worker_flavour: balanced1.2cpu4ram
 worker_volume_size: 0
-
-cluster_gpu_worker_count: 1
-gpu_worker_flavour: gpu1.44cpu240ram.a40.1g.48gb
 
 cluster_node_cidr: 10.10.0.0/24
 cluster_pod_cidr: 192.168.0.0/16
@@ -65,6 +57,24 @@ cloud_manager_version: v1.30.0
 
 #cri_socket: /var/run/crio/crio.sock
 cri_socket: ""
+
+# CNI settings
+
+# can either be calico, calico-operator, cilium
+cni_provider: calico
+
+# GPU Settings
+
+enable_gpu_nodes: false
+
+cluster_gpu_worker_count: 1
+gpu_worker_flavour: gpu1.44cpu240ram.a40.1g.48gb
+
+gpu_kubernetes_version: v1.27.7
+capi_gpu_image_name: rocky-89-kube-nvidia-v1.27.7
+
+# can either be nvidia, hami
+gpu_operator: hami
 
 # Settings related to managing the security groups with Ansible
 

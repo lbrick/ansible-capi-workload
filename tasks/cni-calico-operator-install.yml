@@ -1,0 +1,25 @@
+---
+- name: Check for {{ cluster_name }} tigera-operator
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig get pods -A | grep -c tigera-operator
+  register: tigera_operator_pods
+  ignore_errors: true
+
+- name: Install Calico Operator and CRDs
+  block:
+  - name: Install Calico Operator for {{ cluster_name }}
+    shell: >-
+      kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.2/manifests/tigera-operator.yaml
+
+  - name: Create Calico CRDs template
+    template:
+      src: "calico-custom-resources.yaml.j2"
+      dest: "{{ tmp_dir }}/calico-custom-resources.yaml"
+      mode: 0640
+
+  - name: Install Calico CRDs for {{ cluster_name }}
+    shell: >-
+      kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/calico-custom-resources.yaml
+
+  when:
+    - tigera_operator_pods.stdout != "1"
