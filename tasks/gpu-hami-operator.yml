@@ -1,4 +1,13 @@
 ---
+- name: Get GPU node ID/Name
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig get nodes | grep gpu | awk '{ print $1}'
+  register: gpu_node_name
+
+- name: Label GPU node for HAMi
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig label nodes {{ gpu_node_name }} gpu=on
+
 - name: Add HAMi helm chart repo
   shell: >-
     helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig repo add hami-charts https://project-hami.github.io/HAMi/
