@@ -84,6 +84,8 @@
 
     - name: Create and initialize cluster heathchecks
       include_tasks: install-healthchecks.yml
+      when:
+      - cluster_worker_count < cluster_max_worker_count
 
     - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml

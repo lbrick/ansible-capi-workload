@@ -1,6 +1,6 @@
 ---
-kubernetes_version: v1.28.14
-capi_image_name: rocky-9-crio-v1.28.14 #ubuntu-2204-kube-v1.26.7-ca
+kubernetes_version: v1.30.5
+capi_image_name: rocky-9-containerd-v1.30.5 #ubuntu-2204-kube-v1.26.7-ca
 
 capi_provider_version: v0.8.0
 
@@ -27,6 +27,8 @@ cluster_pod_cidr: 192.168.0.0/16
 cluster_external_network_id: 3f405cc9-28a3-4973-b5a1-7f50f112e5d5
 
 cluster_network_name: "{{ cluster_rdc_project }}"
+
+additional_cluster_networks: []
 
 cluster_settle_timeout_base: 3
 
@@ -60,7 +62,7 @@ cri_socket: ""
 
 # CNI settings
 
-# can either be calico, calico-operator, cilium
+# can either be calico, calico-operator, cilium (not implmented yet)
 cni_provider: calico
 
 # GPU Settings

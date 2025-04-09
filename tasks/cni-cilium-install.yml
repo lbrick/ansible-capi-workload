@@ -6,12 +6,11 @@
 - name: Get current Cilium CLI version
   shell: >
     curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
-  register: CILIUM_CLI_VERSION 
+  register: cilium_cli_version
 
 - name: Download Cilium CLI
   shell: >
-    curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz{,.sha256sum}
-  register: CILIUM_CLI_VERSION
+    curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz
   
 # sudo tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
 # rm cilium-linux-amd64.tar.gz{,.sha256sum}
