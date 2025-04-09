@@ -9,4 +9,6 @@
   shell: >-
     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/{{ cluster_name }}-template-extra-node.yml
 
-
+- name: Pause for {{ cluster_gpu_worker_count * 30 }} minutes while GPU node deploys
+  ansible.builtin.pause:
+    minutes: "{{ cluster_gpu_worker_count * 30 }}"

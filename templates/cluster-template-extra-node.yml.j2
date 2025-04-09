@@ -38,6 +38,24 @@ spec:
       sshKeyName: {{ openstack_ssh_key }}
       securityGroups:
       - name: default
+{% if capi_managed_secgroups == false %}
+      - name: k8s-cluster-default-{{ cluster_name }}-secgroup-worker
+{% endif %}
+{% if additional_cluster_secgroups | length > 0 %}
+{% for additional_secgroup in additional_cluster_secgroups %}
+      - name: {{ additional_secgroup }}
+{% endfor %}
+{% endif %}
       ports:
       - network:
           name: {{ cluster_network_name }}
+{% if additional_cluster_networks | length > 0 %}
+{% for additional_networks in additional_cluster_networks %}
+      - network:
+          name: {{ additional_networks }}
+{% endfor %}
+{% endif %}
+{% if worker_volume_size > 30 %}
+      rootVolume:
+          diskSize: {{ worker_volume_size }}
+{% endif %}

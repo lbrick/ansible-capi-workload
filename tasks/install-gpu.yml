@@ -1,0 +1,14 @@
+---
+- name: GPU Prerequisites
+  include_tasks: gpu-prerequisites.yml
+
+- name: Deploy GPU node
+  include_tasks: gpu-node-deploy.yml
+
+- name: Deploy NVIDIA GPU operator 
+  include_tasks: gpu-nvidia-operator.yml
+  when: (gpu_operator | default('hami')) == "nvidia"
+
+- name: Deploy HAMi GPU operator 
+  include_tasks: gpu-hami-operator.yml
+  when: (gpu_operator | default('hami')) == "hami"

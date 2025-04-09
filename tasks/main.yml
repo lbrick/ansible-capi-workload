@@ -70,16 +70,10 @@
       set_fact:
         enable_gpu_worker: "{{ enable_gpu_nodes }}"
 
-    - name: Deploy extra node
+    - name: Deploy GPU node
       block:  
         - name: Prerequisites
-          include_tasks: gpu-prerequisites.yml
-
-        - name: Deploy GPU node
-          include_tasks: deploy-gpu-node.yml
-
-        - name: Deploy GPU operator helm chart
-          include_tasks: gpu-helm-chart.yml
+          include_tasks: install-gpu.yml
       when:
         - "enable_gpu_worker|default(false)|bool == true"
 
@@ -90,6 +84,8 @@
 
     - name: Create and initialize cluster heathchecks
       include_tasks: install-healthchecks.yml
+      when:
+      - cluster_worker_count < cluster_max_worker_count
 
     - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml
