@@ -7,11 +7,13 @@ metadata:
   labels:
     clusterctl.cluster.x-k8s.io/move: "true"
   name: ${CLUSTER_NAME}-cloud-config
+  namespace: {{ cluster_namespace }}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
+  namespace: {{ cluster_namespace }}
 spec:
   template:
     spec:
@@ -42,6 +44,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
+  namespace: {{ cluster_namespace }}
 spec:
   clusterNetwork:
     pods:
@@ -61,6 +64,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: ${CLUSTER_NAME}-md-0
+  namespace: {{ cluster_namespace }}
   annotations:
     cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "${WORKER_MAX_MACHINE_COUNT}"
     cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "${WORKER_MACHINE_COUNT}"
@@ -88,12 +92,12 @@ apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
   name: ${CLUSTER_NAME}-control-plane
+  namespace: {{ cluster_namespace }}
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
         extraArgs:
-          cloud-provider: external
 {% if enable_oidc_auth %}
           oidc-issuer-url: "{{ kube_oidc_url }}"
           oidc-client-id: "{{ kube_oidc_client_id }}"
@@ -136,6 +140,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackCluster
 metadata:
   name: ${CLUSTER_NAME}
+  namespace: {{ cluster_namespace }}
 spec:
   apiServerLoadBalancer:
     enabled: true
@@ -156,6 +161,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
+  namespace: {{ cluster_namespace }}
 spec:
   template:
     spec:
@@ -165,7 +171,8 @@ spec:
           name: ${OPENSTACK_IMAGE_NAME}
       sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
       securityGroups:
-      - name: default
+      - filter:
+          name: default
 {% if capi_managed_secgroups == false %}
       - filter:
           name: k8s-cluster-default-{{ cluster_name }}-secgroup-controlplane
@@ -189,13 +196,14 @@ spec:
 {% endif %}
 {% if control_plane_volume_size > 30 %}
       rootVolume:
-          sizeGB: {{ control_plane_volume_size }}
+          sizeGiB: {{ control_plane_volume_size }}
 {% endif %}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
+  namespace: {{ cluster_namespace }}
 spec:
   template:
     spec:
@@ -205,7 +213,8 @@ spec:
           name: ${OPENSTACK_IMAGE_NAME}
       sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
       securityGroups:
-      - name: default
+      - filter:
+          name: default
 {% if capi_managed_secgroups == false %}
       - filter:
           name: k8s-cluster-default-{{ cluster_name }}-secgroup-controlplane
@@ -229,5 +238,5 @@ spec:
 {% endif %}
 {% if worker_volume_size > 30 %}
       rootVolume:
-          sizeGB: {{ worker_volume_size }}
+          sizeGiB: {{ worker_volume_size }}
 {% endif %}
