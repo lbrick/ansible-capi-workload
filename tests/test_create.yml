@@ -1,0 +1,8 @@
+- name: Create workload cluster using ansible-capi-workload
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - test_vars.yml
+  roles:
+    - role: ../ansible-capi-workload
