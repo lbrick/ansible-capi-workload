@@ -6,18 +6,18 @@
     - test_vars.yml
   tasks:
     - name: Check Cluster exists
-      command: kubectl --kubeconfig {{ kubeconfig }} get cluster {{ cluster_name }}
+      command: kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }}
       register: cluster_result
       failed_when: cluster_result.rc != 0
 
     - name: Assert Cluster is Ready
       command: >
-        kubectl --kubeconfig {{ kubeconfig }} get cluster {{ cluster_name }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+        kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
       register: cluster_ready
       failed_when: cluster_ready.stdout.strip() != "True"
 
     - name: Assert nodes are ready in workload cluster
       command: >
-        kubectl --kubeconfig {{ kubeconfig }} --context {{ cluster_name }} get nodes --no-headers
+        kubectl --context {{ cluster_name }} -n {{ cluster_namespace }} get nodes --no-headers
       register: nodes
       failed_when: nodes.stdout_lines | length == 0
