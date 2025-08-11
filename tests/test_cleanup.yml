@@ -1,0 +1,10 @@
+- name: Cleanup workload cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - test_vars.yml
+  tasks:
+    - name: Delete cluster
+      command: kubectl --kubeconfig {{ kubeconfig }} delete cluster {{ cluster_name }} -n {{ cluster_namespace }} --wait
+      ignore_errors: true

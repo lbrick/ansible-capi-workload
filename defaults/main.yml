@@ -6,7 +6,7 @@ capi_provider_version: v0.8.0
 
 cluster_rdc_project: NeSI-Training-Test
 cluster_name: capi-cluster
-cluster_namespace: default
+cluster_namespace: "{{ cluster_rdc_project | lower }}"
 
 capi_management_cluster: training-env-management
 
@@ -27,6 +27,7 @@ cluster_pod_cidr: 192.168.0.0/16
 cluster_external_network_id: 3f405cc9-28a3-4973-b5a1-7f50f112e5d5
 
 cluster_network_name: "{{ cluster_rdc_project }}"
+cluster_network: NeSI-Training-Test
 
 additional_cluster_networks: []
 
@@ -55,7 +56,7 @@ autoscaler_ns: "kube-system"
 autoscaler_image: "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
 autoscaler_overprovision: false
 
-cloud_manager_version: v1.30.0
+cloud_provider_openstack_version: v1.33.0
 
 #cri_socket: /var/run/crio/crio.sock
 cri_socket: ""

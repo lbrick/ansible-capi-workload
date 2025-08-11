@@ -1,0 +1,23 @@
+- name: Assert workload cluster was created and is healthy
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - test_vars.yml
+  tasks:
+    - name: Check Cluster exists
+      command: kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }}
+      register: cluster_result
+      failed_when: cluster_result.rc != 0
+
+    - name: Assert Cluster is Ready
+      command: >
+        kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: cluster_ready
+      failed_when: cluster_ready.stdout.strip() != "True"
+
+    - name: Assert nodes are ready in workload cluster
+      command: >
+        kubectl --context {{ cluster_name }} -n {{ cluster_namespace }} get nodes --no-headers
+      register: nodes
+      failed_when: nodes.stdout_lines | length == 0

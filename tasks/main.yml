@@ -16,7 +16,7 @@
           openstack.cloud.security_group:
             cloud: "{{ yaml_openstack_cloud }}"
             state: present
-            name: k8s-cluster-default-{{ cluster_name }}-secgroup-controlplane
+            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane
             description: Ansible Cluster API managed group
           register: controlplane_secgroup
 
@@ -24,7 +24,7 @@
           openstack.cloud.security_group:
             cloud: "{{ yaml_openstack_cloud }}"
             state: present
-            name: k8s-cluster-default-{{ cluster_name }}-secgroup-worker
+            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
             description: Ansible Cluster API managed group
           register: worker_secgroup
 
@@ -47,7 +47,7 @@
 
     - name: Check cluster {{ cluster_name }} is initialized
       shell: >-
-        kubectl get clusters | grep {{ cluster_name }}
+        kubectl get clusters -n {{ cluster_namespace }} | grep {{ cluster_name }}
       register: cluster_intialized
       ignore_errors: true
 

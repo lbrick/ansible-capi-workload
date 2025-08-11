@@ -8,6 +8,15 @@ To bootstrap a CAPI management cluster please look at the following repo [NeSI R
 
 The CAPI images are generated from the following image bulder repo [CAPI Images](https://github.com/lbrick/image-builder/tree/2023-nesi_images)
 
+### Management Support
+
+The Management version matrix represents the versions of this Workload repo which are recommended with the Management repo versions
+
+| Mangement Version    | Workload Version |
+| -------------------- | ---------------- |
+| v0.2.X               | v0.3.X           |
+| v0.4.X               | v0.4.X           |
+
 ## Using Cluster autoscaler
 
 If the variable `cluster_max_worker_count` is greater then `cluster_worker_count` then Cluster Autoscaler will be deployed inside the workload cluster. This will not scale the GPU nodes if they are enabled at this stage.

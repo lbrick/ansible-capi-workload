@@ -1,0 +1,44 @@
+---
+kubernetes_version: v1.33.3
+capi_image_name: rocky-9-containerd-v1.33.3
+
+cluster_rdc_project: NeSI_RDC_PROJECT_NAME
+cluster_name: CAPI_CLUSTER_NAME
+cluster_namespace: "{{ cluster_rdc_project }}"
+
+cluster_network: "{{ cluster_rdc_project }}"
+
+capi_management_cluster: MANGEMENT_CLUSTER_NAME
+
+openstack_ssh_key: NeSI_RDC_KEYPAIR_NAME
+
+cluster_control_plane_count: 1
+control_plane_flavor: balanced1.2cpu4ram
+control_plane_volume_size: 40
+
+cluster_worker_count: 2
+cluster_max_worker_count: 2
+worker_flavour: balanced1.2cpu4ram
+worker_volume_size: 0
+
+cluster_node_cidr: 10.10.0.0/24
+cluster_pod_cidr: 192.168.0.0/16
+cluster_route_id: 3c0cb930-2bbe-4c9c-ac61-6dbc9410c3e9
+
+clouds_yaml_location: ~/.config/openstack/clouds.yaml
+clouds_yaml_cloud: openstack
+
+kube_config_local_location: ~/.kube/config
+kube_config_location: "~/.kube"
+
+kube_oidc_auth: false
+
+enable_gpu_nodes: false
+
+capi_managed_secgroups: false
+
+yaml_openstack_cloud: openstack
+
+source_ips:
+  - 163.7.144.0/21
+  - "{{ cluster_node_cidr }}"
