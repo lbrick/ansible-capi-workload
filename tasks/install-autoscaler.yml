@@ -7,13 +7,103 @@
 
 - name: Install and configure cluster auto-scaler
   block: 
-    - name: Get CAPI Managment cluster kubeconfig
-      shell: >-
-        kubectl get secret {{ capi_management_cluster }}-kubeconfig -o jsonpath='{.data.value}' | base64 --decode >> {{ tmp_dir }}/mgnt-kubeconfig
 
-    - name: Set CAPI Managment cluster kubeconfig as secret
-      shell: >-
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig --from-file=kubeconfig={{ tmp_dir }}/mgnt-kubeconfig -n kube-system
+    - name: Get {{ cluster_name }} UID
+      shell: >
+        kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.metadata.uid}'
+      register: cluster_uid_output
+
+    - name: Set {{ cluster_name }} UID
+      set_fact:
+        cluster_uid: "{{ cluster_uid_output.stdout }}"
+
+    - name: Create ServiceAccount with ownerReference
+      template:
+        src: "autoscaler-sa.yml.j2"
+        dest: "{{ tmp_dir }}/{{ cluster_name }}-sa.yml"
+        mode: 0644
+
+    - name: Apply ServiceAccount
+      shell: kubectl apply -f {{ tmp_dir }}/{{ cluster_name }}-sa.yml
+
+    - name: Get SA token from secret
+      shell: >
+        kubectl get secret service-token -n {{ cluster_namespace }} -o jsonpath='{.data.token}' | base64 --decode
+      register: sa_token
+
+    - name: Create Role manifest for Machine API management
+      template:
+        src: "autoscaler-role.yml.j2"
+        dest: "{{ tmp_dir }}/autoscaler-role.yml"
+        mode: 0640
+
+    - name: Create RoleBinding manifest
+      template:
+        src: "autoscaler-rolebinding.yml.j2"
+        dest: "{{ tmp_dir }}/autoscaler-rolebinding.yml"
+        mode: 0640
+
+    - name: Apply RBAC manifests
+      shell: >
+        kubectl apply -f {{ tmp_dir }}/autoscaler-role.yml &&
+        kubectl apply -f {{ tmp_dir }}/autoscaler-rolebinding.yml
+
+    - name: Get current context
+      shell: kubectl config current-context
+      register: current_context
+
+    - name: Get cluster name from current context
+      shell: >
+        kubectl config view -o jsonpath='{.contexts[?(@.name=="{{ current_context.stdout }}")].context.cluster}'
+      register: context_cluster_name
+
+    - name: Get management cluster endpoint by cluster name
+      shell: >
+        kubectl config view -o jsonpath='{.clusters[?(@.name=="{{ context_cluster_name.stdout }}")].cluster.server}'
+      register: mgmt_cluster_endpoint
+
+    - name: Set management cluster endpoint
+      set_fact:
+        cluster_endpoint: "{{ mgmt_cluster_endpoint.stdout }}"
+
+    - name: Get management CA cert by cluster name
+      shell: >
+        kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="{{ context_cluster_name.stdout }}")].cluster.certificate-authority-data}'
+      register: management_ca_crt
+
+    - name: Set management cluster CA
+      set_fact:
+        cluster_ca_crt: "{{ management_ca_crt.stdout }}"
+
+    - name: Create autoscaler kubeconfig from SA token
+      copy:
+        dest: "{{ tmp_dir }}/autoscaler-kubeconfig"
+        mode: '0600'
+        content: |
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - name: capi-cluster
+            cluster:
+              certificate-authority-data: {{ cluster_ca_crt }}
+              server: {{ cluster_endpoint }}
+          contexts:
+          - name: capi-context
+            context:
+              cluster: capi-cluster
+              user: sa-user
+              namespace: {{ cluster_namespace }}
+          current-context: capi-context
+          users:
+          - name: sa-user
+            user:
+              token: {{ sa_token.stdout }}
+
+    - name: Create kubeconfig secret for autoscaler in workload cluster kube-system namespace
+      shell: >
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig \
+          --from-file=kubeconfig={{ tmp_dir }}/autoscaler-kubeconfig -n kube-system --dry-run=client -o yaml | \
+        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f -
 
     - name: Create auto-scaler deployment template
       template:
