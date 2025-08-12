@@ -1,0 +1,40 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autoscaler-role
+  namespace: {{ cluster_namespace }}
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: {{ cluster_name }}
+      uid: {{ cluster_uid }}
+      blockOwnerDeletion: true
+      controller: false
+rules:
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  - machines/status
+  - machinesets
+  - machinesets/status
+  - machinepools
+  - machinepools/status
+  - machinedeployments
+  - machinedeployments/status
+  - clusters
+  - clusters/status
+  - machinehealthchecks
+  - machinehealthchecks/status
+  - openstackmachinetemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
