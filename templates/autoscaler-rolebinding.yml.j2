@@ -1,20 +1,19 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-    name: autoscaler-rolebinding
-    namespace: {{ cluster_namespace }}
-    ownerReferences:
-      - apiVersion: cluster.x-k8s.io/v1beta1
-        kind: Cluster
-        name: {{ cluster_name }}
-        uid: {{ cluster_uid }}
-        blockOwnerDeletion: true
-        controller: false
+  name: autoscaler-{{ cluster_name }}-binding
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: {{ cluster_name }}
+      uid: {{ cluster_uid }}
+      blockOwnerDeletion: true
+      controller: false
 subjects:
-    - kind: ServiceAccount
-      name: cluster-autoscaler
-      namespace: {{ cluster_namespace }}
+  - kind: ServiceAccount
+    name: cluster-autoscaler
+    namespace: {{ cluster_namespace }}
 roleRef:
-    kind: ClusterRole
-    name: autoscaler-role
-    apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: autoscaler-{{ cluster_name }}
+  apiGroup: rbac.authorization.k8s.io
