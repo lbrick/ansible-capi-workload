@@ -27,9 +27,12 @@
       shell: kubectl apply -f {{ tmp_dir }}/{{ cluster_name }}-sa.yml
 
     - name: Get SA token from secret
-      shell: >
-        kubectl get secret service-token -n {{ cluster_namespace }} -o jsonpath='{.data.token}' | base64 --decode
+      ansible.builtin.shell: >
+        kubectl get secret cluster-autoscaler-token-{{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.data.token}' | base64 --decode
       register: sa_token
+      until: sa_token.stdout != ""
+      retries: 10
+      delay: 3
 
     - name: Create Role manifest for Machine API management
       template:
