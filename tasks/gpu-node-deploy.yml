@@ -1,14 +1,14 @@
 ---
 - name: Create clusterctl yaml file
   template:
-    src: "cluster-template-extra-node.yml.j2"
-    dest: "{{ tmp_dir }}/{{ cluster_name }}-template-extra-node.yml"
+    src: "cluster-template-gpu-node.yml.j2"
+    dest: "{{ tmp_dir }}/{{ cluster_name }}-template-gpu-node.yml"
     mode: 0640
 
 - name: Init {{ cluster_name }} GPU nodes
   shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/{{ cluster_name }}-template-extra-node.yml
+    kubectl apply -f {{ tmp_dir }}/{{ cluster_name }}-template-gpu-node.yml
 
-- name: Pause for {{ cluster_gpu_worker_count * 30 }} minutes while GPU node deploys
+- name: Pause for {{ cluster_gpu_worker_count * 8 }} minutes while GPU node deploys
   ansible.builtin.pause:
-    minutes: "{{ cluster_gpu_worker_count * 30 }}"
+    minutes: "{{ cluster_gpu_worker_count * 8 }}"

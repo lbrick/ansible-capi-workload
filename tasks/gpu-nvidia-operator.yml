@@ -1,7 +1,7 @@
 ---
 - name: Add Nvidia helm chart repo
   shell: >-
-    helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig repo add nvidia https://nvidia.github.io/gpu-operator
+    helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig repo add nvidia https://helm.ngc.nvidia.com/nvidia
 
 - name: Run helm repo update
   shell: >-
@@ -9,8 +9,25 @@
 
 - name: Install Nvidia gpu-operator
   shell: >-
-    helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig install gpu-operator --wait \
-    --create-namespace nvidia/gpu-operator \
-    --set operator.defaultRuntime=containerd \
-    --set validator.driver.env[0].name=DISABLE_DEV_CHAR_SYMLINK_CREATION \
-    --set-string validator.driver.env[0].value=true
+    helm --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig install nvidia-gpu-operator \
+    --wait -n gpu-operator --create-namespace nvidia/gpu-operator \
+    --version=v{{ nvidia_gpu_operator_version }} \
+    --set toolkit.version=v{{ nvidia_container_toolkit_version }}-ubi8
+
+- name: Create GPU {{ nvidia_gpu_sharing_type }} config
+  template:
+    src: "nvidia-gpu-{{ nvidia_gpu_sharing_type }}-config-all.yml.j2"
+    dest: "{{ tmp_dir }}/gpu-{{ nvidia_gpu_sharing_type }}-config-all.yml"
+    mode: 0640
+
+- name: Apply GPU {{ nvidia_gpu_sharing_type }} config
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create -n gpu-operator \
+    -f {{ tmp_dir }}/gpu-{{ nvidia_gpu_sharing_type }}-config-all.yml
+
+- name: Apply patch to use {{ nvidia_gpu_sharing_type }} config
+  shell: >-
+    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig patch \
+    clusterpolicies.nvidia.com/cluster-policy \
+    -n gpu-operator --type merge \
+    -p '{"spec": {"devicePlugin": {"config": {"name": "{{ nvidia_gpu_sharing_type }}-config-all", "default": "any"}}}}'

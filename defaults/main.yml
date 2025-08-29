@@ -76,8 +76,18 @@ gpu_worker_flavour: gpu1.40cpu200ram.a40.1g.48gb
 gpu_kubernetes_version: v1.27.7
 capi_gpu_image_name: rocky-89-kube-nvidia-v1.27.7
 
-# can either be nvidia, hami
-gpu_operator: hami
+# can either be nvidia, hami (Currently hami is still in development)
+gpu_operator: nvidia
+
+## NVIDIA GPU Operator settings
+## https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html
+
+nvidia_gpu_operator_version: 25.3.1
+nvidia_container_toolkit_version: 1.17.8
+
+## options are mps or time-slicing
+## https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html
+nvidia_gpu_sharing_type: mps
 
 # Settings related to managing the security groups with Ansible
 

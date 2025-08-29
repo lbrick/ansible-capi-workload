@@ -8,63 +8,63 @@
 - name: Create and initialize clusterctl and cloud manager
   block:
 
-    - name: Deployed ansible managed CAPI security groups
-      delegate_to: localhost
-      become: false
-      block:  
-        - name: Create Kubernetes control plane security group
-          openstack.cloud.security_group:
-            cloud: "{{ yaml_openstack_cloud }}"
-            state: present
-            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane
-            description: Ansible Cluster API managed group
-          register: controlplane_secgroup
+    # - name: Deployed ansible managed CAPI security groups
+    #   delegate_to: localhost
+    #   become: false
+    #   block:  
+    #     - name: Create Kubernetes control plane security group
+    #       openstack.cloud.security_group:
+    #         cloud: "{{ yaml_openstack_cloud }}"
+    #         state: present
+    #         name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane
+    #         description: Ansible Cluster API managed group
+    #       register: controlplane_secgroup
 
-        - name: Create Kubernetes worker security group
-          openstack.cloud.security_group:
-            cloud: "{{ yaml_openstack_cloud }}"
-            state: present
-            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
-            description: Ansible Cluster API managed group
-          register: worker_secgroup
+    #     - name: Create Kubernetes worker security group
+    #       openstack.cloud.security_group:
+    #         cloud: "{{ yaml_openstack_cloud }}"
+    #         state: present
+    #         name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
+    #         description: Ansible Cluster API managed group
+    #       register: worker_secgroup
 
-        - name: Configure Kubernetes control plane security group
-          include_tasks: secgroups-control-plane.yml
+    #     - name: Configure Kubernetes control plane security group
+    #       include_tasks: secgroups-control-plane.yml
 
-        - name: Configure Kubernetes worker security group
-          include_tasks: secgroups-worker.yml
-      when:
-        - "capi_managed_secgroups|default(true)|bool == false"
+    #     - name: Configure Kubernetes worker security group
+    #       include_tasks: secgroups-worker.yml
+    #   when:
+    #     - "capi_managed_secgroups|default(true)|bool == false"
 
-    - name: Read clouds.yaml
-      slurp:
-        src: "{{ clouds_yaml_location }}"
-      register: file_content
+    # - name: Read clouds.yaml
+    #   slurp:
+    #     src: "{{ clouds_yaml_location }}"
+    #   register: file_content
 
-    - name: Decode the base64 encoded version of the YAML file and assign it to a variable
-      set_fact:
-        file_contents: "{{ file_content['content'] | b64decode | from_yaml }}"
+    # - name: Decode the base64 encoded version of the YAML file and assign it to a variable
+    #   set_fact:
+    #     file_contents: "{{ file_content['content'] | b64decode | from_yaml }}"
 
-    - name: Check cluster {{ cluster_name }} is initialized
-      shell: >-
-        kubectl get clusters -n {{ cluster_namespace }} | grep {{ cluster_name }}
-      register: cluster_intialized
-      ignore_errors: true
+    # - name: Check cluster {{ cluster_name }} is initialized
+    #   shell: >-
+    #     kubectl get clusters -n {{ cluster_namespace }} | grep {{ cluster_name }}
+    #   register: cluster_intialized
+    #   ignore_errors: true
 
-    - name: Create and initialize clusterctl
-      include_tasks: configure-install-clusterctl.yml
-      when: cluster_intialized.stdout == ""
+    # - name: Create and initialize clusterctl
+    #   include_tasks: configure-install-clusterctl.yml
+    #   when: cluster_intialized.stdout == ""
 
-    - name: Get {{ cluster_name }} cluster kubeconfig yaml 
-      shell: >-
-        kubectl get secret -n {{ cluster_namespace }} {{ cluster_name }}-kubeconfig 
-        -o jsonpath='{.data.value}'|base64 -d > {{ tmp_dir }}/{{ cluster_name }}.kubeconfig
+    # - name: Get {{ cluster_name }} cluster kubeconfig yaml 
+    #   shell: >-
+    #     kubectl get secret -n {{ cluster_namespace }} {{ cluster_name }}-kubeconfig 
+    #     -o jsonpath='{.data.value}'|base64 -d > {{ tmp_dir }}/{{ cluster_name }}.kubeconfig
 
-    - name: Install CNI
-      include_tasks: install-cni.yml
+    # - name: Install CNI
+    #   include_tasks: install-cni.yml
 
-    - name: Create and initialize cloud manager
-      include_tasks: install-cloud-manager.yml
+    # - name: Create and initialize cloud manager
+    #   include_tasks: install-cloud-manager.yml
 
     - name: Setting GPU Enabled boolean to {{ enable_gpu_nodes }}
       set_fact:

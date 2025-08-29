@@ -9,6 +9,11 @@ spec:
   selector:
     matchLabels: null
   template:
+{% if gpu_operator == "hami" %}
+    metadata:
+      labels:
+        gpu: "on"
+{% endif %}
     spec:
       bootstrap:
         configRef:
@@ -37,7 +42,8 @@ spec:
           name: {{ capi_gpu_image_name }}
       sshKeyName: {{ openstack_ssh_key }}
       securityGroups:
-      - name: default
+      - filter:
+          name: default
 {% if capi_managed_secgroups == false %}
       - filter:
           name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane
