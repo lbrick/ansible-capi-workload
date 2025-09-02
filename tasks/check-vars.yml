@@ -1,5 +1,5 @@
 ---
-- name: Workload | Check mandatory variables are defined
+- name: Check mandatory variables are defined
   assert:
     that:
       - cluster_rdc_project is defined
