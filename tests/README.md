@@ -1,63 +1,163 @@
+# Testing NeSI RDC CAPI Workload Clusters
+
+## Overview
+
+This directory provides automated tests for verifying the ansible-capi-workload role, including cluster creation, validation, and cleanup scenarios within the NeSI RDC environment.
+
+## Table of Contents
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Configuration](#configuration)
+- [Running Tests](#running-tests)
+- [Available CAPI Images](#available-capi-images)
+- [Test Scenarios](#test-scenarios)
+- [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+### Required Access
+- Active NeSI RDC project with sufficient quotas
+- SSH key pair registered in NeSI RDC
+- Working CAPI management cluster (see main README)
+- Network and security group creation permissions
+
+### Required Tools
+- Ansible 2.15+ and ansible-core
+- Python 3.8+ with openstacksdk
+- kubectl configured for management cluster
+- Git for cloning repositories
+
+### Environment Preparation
+Ensure kubectl context is set to your management cluster:
+
+```bash
+kubectl config current-context
+# Should show your CAPI management cluster
+```
+
 ## Setup
 
-Make a copy of the file `test_vars.yml.example` and fill in the requried parameters
+### 1. Prepare Test Directory
+Navigate to the tests directory in your ansible-capi-workload checkout.
 
-``` { .sh }
-cp -r ./test_vars.yml.example ./test_vars.yml
+### 2. Install Ansible Dependencies
+
+```bash
+ansible-galaxy collection install -r requirements.yml
 ```
 
-Some of the parameters to change
+### 3. Setup Python Virtual Environment (Recommended)
 
-``` { .sh }
-kubernetes_version: v1.27.6
-capi_image_name: rocky-89-kube-v1.27.6
+For security group management and dependency isolation:
 
-cluster_rdc_project: NeSI_RDC_PROJECT_NAME
-cluster_name: CAPI_CLUSTER_NAME
-cluster_namespace: default
+```bash
+# Create virtual environment
+python3 -m venv ~/capi-test-venv
 
-capi_management_cluster: MANGEMENT_CLUSTER_NAME
+# Activate
+source ~/capi-test-venv/bin/activate
 
-openstack_ssh_key: NeSI_RDC_KEYPAIR_NAME
-
-cluster_control_plane_count: 1
-control_plane_flavor: balanced1.2cpu4ram
-
-cluster_worker_count: 2
-worker_flavour: balanced1.2cpu4ram
-
-cluster_node_cidr: 10.10.0.0/24
-cluster_pod_cidr: 192.168.0.0/16
-cluster_route_id: 3c0cb930-2bbe-4c9c-ac61-6dbc9410c3e9
-
-clouds_yaml_location: ~/.config/openstack/clouds.yaml
-clouds_yaml_cloud: openstack
-
-kube_config_local_location: ~/.kube/config
-kube_config_location: "~/.kube"
-
-kube_oidc_auth: false
-
-capi_managed_secgroups: true
-
-yaml_openstack_cloud: openstack
-
-source_ips:
-  - 163.7.144.0/21
-  - "{{ cluster_node_cidr }}"
+# Install dependencies
+pip install ansible ansible-core openstacksdk
 ```
 
-`NeSI_RDC_PROJECT_NAME` needs to be replaced with your NeSI RDC Project name e.g. NeSI-Training-Test
+## Configuration
 
-`CAPI_CLUSTER_NAME` the name of your cluster
+### Test Variables Setup
 
-`MANGEMENT_CLUSTER_NAME` the name of your management cluster that this workload cluster will deploy from
+1. **Copy Template:**
+   ```bash
+   cp test_vars.yml.example test_vars.yml
+   ```
 
-`NeSI_RDC_KEYPAIR_NAME` the name of your keypair that is in the NeSI RDC
+2. **Configure Variables:**
 
-There are the following CAPI images available
+   Edit `test_vars.yml` with your NeSI RDC project specifics:
 
-``` { .sh }
+   ```yaml
+   kubernetes_version: v1.31.1
+   capi_image_name: rocky-9-containerd-v1.31.1
+
+   cluster_rdc_project: NeSI_RDC_PROJECT_NAME
+   cluster_name: CAPI_CLUSTER_NAME
+   cluster_namespace: default
+
+   capi_management_cluster: MANAGEMENT_CLUSTER_NAME
+
+   openstack_ssh_key: NeSI_RDC_KEYPAIR_NAME
+
+   cluster_control_plane_count: 1
+   control_plane_flavor: balanced1.2cpu4ram
+
+   cluster_worker_count: 2
+   worker_flavour: balanced1.2cpu4ram
+
+   cluster_node_cidr: 10.10.0.0/24
+   cluster_pod_cidr: 192.168.0.0/16
+   cluster_route_id: 3c0cb930-2bbe-4c9c-ac61-6dbc9410c3e9
+
+   clouds_yaml_location: ~/.config/openstack/clouds.yaml
+   clouds_yaml_cloud: openstack
+
+   kube_config_local_location: ~/.kube/config
+   kube_config_location: "~/.kube"
+
+   kube_oidc_auth: false
+
+   capi_managed_secgroups: true
+
+   yaml_openstack_cloud: openstack
+
+   source_ips:
+     - 163.7.144.0/21
+     - "{{ cluster_node_cidr }}"
+   ```
+
+### Variable Explanations
+
+- `NeSI_RDC_PROJECT_NAME`: Your RDC project name (e.g., NeSI-Training-Test)
+- `CAPI_CLUSTER_NAME`: Unique test cluster identifier
+- `MANAGEMENT_CLUSTER_NAME`: Name of your CAPI management cluster
+- `NeSI_RDC_KEYPAIR_NAME`: SSH key pair registered in your RDC project
+- Network CIDRs must not conflict with existing NeSI resources
+- Source IPs should include your management cluster network ranges
+
+## Running Tests
+
+### Complete Test Cycle
+
+1. **Create Cluster:**
+   ```bash
+   ansible-playbook -i inventory.ini test_create.yml
+   ```
+
+2. **Verify Deployment:**
+   ```bash
+   ansible-playbook -i inventory.ini test_assert.yml
+   ```
+
+3. **Clean Up:**
+   ```bash
+   ansible-playbook -i inventory.ini test_cleanup.yml
+   ```
+
+### Manual Execution from Parent Directory
+
+If running from ansible-capi-workload root:
+
+```bash
+cd ansible-capi-workload
+
+ansible-playbook -i tests/inventory.ini tests/test_create.yml
+ansible-playbook -i tests/inventory.ini tests/test_assert.yml
+ansible-playbook -i tests/inventory.ini tests/test_cleanup.yml
+```
+
+## Available CAPI Images
+
+Supported Rocky 9-based Kubernetes images:
+
+```
 rocky-9-containerd-v1.28.14
 rocky-9-containerd-v1.29.7
 rocky-9-containerd-v1.30.5
@@ -68,38 +168,89 @@ rocky-9-containerd-v1.32.7
 rocky-9-containerd-v1.33.3
 ```
 
-## Install ansible dependencies
+**Important**: Ensure the `capi_image_name` matches the `kubernetes_version` exactly.
 
-``` { .sh }
-ansible-galaxy collection install -r requirements.yml
-```
+## Test Scenarios
 
-## If looking to create ansible managed security groups
+### Validation Content
 
-It is recommended to use a python virtual environment to contain the required dependencies.
+The `test_assert.yml` playbook validates:
 
-``` { .sh }
-# create a virtual environment using the Python3 virtual environment module
-python3 -m venv ~/capi-venv
+- **Cluster Creation**: Successful deployment of control plane and worker nodes
+- **Node Readiness**: All nodes in Ready state
+- **Networking**: Pod-to-pod communication and external access
+- **Kubernetes API**: Access via generated kubeconfig
+- **Optional Components**: GPU operators, CNIs, autoscaler if enabled
+- **Security**: Proper security group rules and access controls
 
-# activate the virtual environment
-source ~/capi-venv/bin/activate
+### Test Variations
 
-# install ansible into the venv
-pip install ansible ansible-core
+You can modify test scenarios by adjusting variables:
 
-# install the openstacksdk
-pip install "openstacksdk>=1.0.0"
-```
+- **GPU Tests**: Set `enable_gpu_nodes: true`
+- **CNI Tests**: Change `cni_type` to test Calico vs Cilium
+- **Autoscaling Tests**: Set `cluster_max_worker_count > cluster_worker_count`
+- **Security Group Tests**: Toggle `capi_managed_secgroups`
 
-## Run Tests
+### Expected Runtime
 
-From the directory above ansible-capi-workload, run:
+- Basic cluster creation: 15-20 minutes
+- With GPU nodes: 25-35 minutes
+- Full test cycle: 30-45 minutes
 
-```
-cd ansible-capi-workload
+## Troubleshooting
 
-ansible-playbook -i tests/inventory.ini tests/test_create.yml
-ansible-playbook -i tests/inventory.ini tests/test_assert.yml
-ansible-playbook -i tests/inventory.ini tests/test_cleanup.yml
-```
+### Common Test Issues
+
+**Ansible Connection Failures:**
+- Verify SSH key permissions and paths
+- Ensure security groups allow SSH from your location
+- Confirm VM flavors are available and correctly spelled
+
+**Terraform/OpenStack Errors:**
+- Check RDC quotas for instances, floating IPs, security groups
+- Verify OpenStack credentials and project permissions
+- Ensure network and subnet configurations are valid
+
+**Kubernetes Deployment Failures:**
+- Confirm management cluster is accessible and functional
+- Verify CAPI provider versions match
+- Check node readiness and kubelet logs
+
+**Security Group Creation Errors:**
+- Confirm OpenStack permissions for security group management
+- Ensure no naming conflicts with existing resources
+- Verify role variables for security group configuration
+
+### Debug Steps
+
+1. **Enable Verbose Output:**
+   ```bash
+   ansible-playbook -i inventory.ini -vv test_create.yml
+   ```
+
+2. **Check Cluster Status:**
+   ```bash
+   kubectl get clusters -A
+   kubectl get machines -A
+   ```
+
+3. **Review OpenStack Resources:**
+   ```bash
+   openstack server list --project your-project
+   openstack security group list
+   ```
+
+4. **Examine Ansible Logs:**
+   - Review console output for task failures
+   - Check individual task results for OpenStack API errors
+   - Verify variable values at runtime
+
+### Getting Help
+
+- Review main README for detailed feature explanations
+- Check NeSI RDC documentation for environment-specific issues
+- Verify compatibility with management cluster versions
+- Ensure all prerequisite access and credentials are correct
+
+This test framework enables confident deployment and validation of ansible-capi-workload changes within NeSI RDC environments.
