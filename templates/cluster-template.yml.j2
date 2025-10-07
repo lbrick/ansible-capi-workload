@@ -217,7 +217,7 @@ spec:
           name: default
 {% if capi_managed_secgroups == false %}
       - filter:
-          name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane
+          name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
 {% endif %}
 {% if additional_cluster_secgroups | length > 0 %}
 {% for additional_secgroup in additional_cluster_secgroups %}
