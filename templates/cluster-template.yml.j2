@@ -103,8 +103,12 @@ spec:
           oidc-client-id: "{{ kube_oidc_client_id }}"
           oidc-username-claim: "{{ kube_oidc_username_claim }}"
           oidc-groups-claim: "{{ kube_oidc_groups_claim }}"
+{% if kube_oidc_username_prefix | default('') | length > 0 %}
           oidc-username-prefix: "{{ kube_oidc_username_prefix }}"
+{% endif %}
+{% if kube_oidc_groups_prefix | default('') | length > 0 %}
           oidc-groups-prefix: "{{ kube_oidc_groups_prefix }}"
+{% endif %}
 {% endif %}
       controllerManager:
         extraArgs:

@@ -109,9 +109,9 @@ kube_oidc_url: https://{{ kube_oidc_hostname }}/realms/ondemand
 kube_oidc_client_id: kubernetes
 ## Optional settings for OIDC
 kube_oidc_username_claim: preferred_username
-kube_oidc_username_prefix: "-"
+kube_oidc_username_prefix: ""
 kube_oidc_groups_claim: groups
-kube_oidc_groups_prefix: 'oidc:'
+kube_oidc_groups_prefix: ""
 # Copy oidc CA file to the following path if needed
 kube_oidc_ca_file: "{{ ca_cert_file }}"
 
