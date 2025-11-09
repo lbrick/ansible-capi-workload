@@ -24,6 +24,7 @@ spec:
         args:
         - --cloud-provider=clusterapi
         - --cloud-config=/mnt/kubeconfig
+        - --node-group-auto-discovery=clusterapi:clusterName={{ cluster_name }}
         volumeMounts:
         - name: mgnt-kubeconfig
           mountPath: /mnt
