@@ -1,0 +1,27 @@
+---
+apiVersion: infra.contrib.fluxcd.io/v1alpha2
+kind: Terraform
+metadata:
+  name: {{ cluster_name }}-terraform
+  namespace: flux-system
+spec:
+  path: ./terraform
+  interval: 5m
+  approvePlan: auto
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+  runnerPodTemplate:
+    spec:
+      env:
+      - name: OS_CLIENT_CONFIG_FILE
+        value: /etc/openstack/clouds.yaml
+      volumeMounts:
+      - name: openstack-credentials
+        mountPath: /etc/openstack
+        readOnly: true
+      volumes:
+      - name: openstack-credentials
+        secret:
+          secretName: {{ cluster_name }}-cloud-config
+          optional: false

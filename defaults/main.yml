@@ -65,6 +65,8 @@ cri_socket: ""
 # can either be calico, calico-operator, cilium (not implmented yet)
 cni_provider: calico
 
+calico_version: v3.30.3
+
 # GPU Settings
 
 enable_gpu_nodes: false
@@ -118,3 +120,20 @@ kube_oidc_ca_file: "{{ ca_cert_file }}"
 preKubeadmCommands: []
 
 postKubeadmCommands: []
+
+# variables are talos, plain
+capi_deployment: ""
+
+talos_version: 1.11.2
+talos_openstack_image: talos-v{{ talos_version }}
+
+# FluxCD Variables
+
+fluxcd_deployment: false
+end_playbook: true
+
+flux_templates_dir: /tmp/{{ cluster_name }}-flux-templates
+flux_cluster_templates: "{{ flux_templates_dir }}/cluster"
+flux_terraform_templates: "{{ flux_templates_dir }}/terraform"
+
+flux_git_repo: https://gitlab.com/nesi1/flexihpc/cluster-definition-capi.git

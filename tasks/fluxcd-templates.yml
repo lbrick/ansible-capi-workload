@@ -1,0 +1,66 @@
+---
+- name: Creating Flux template dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ flux_terraform_templates }}"
+    - "{{ flux_cluster_templates }}"
+
+# Terraform Templates
+- name: Create main.tf template
+  template:
+    src: "terraform/main.tf.j2"
+    dest: "{{ flux_terraform_templates }}/main.tf"
+    mode: 0640
+
+- name: Create variables.tf template
+  template:
+    src: "terraform/variables.tf.j2"
+    dest: "{{ flux_terraform_templates }}/variables.tf"
+    mode: 0640
+
+- name: Create terraform.tfvars template
+  template:
+    src: "terraform/terraform.tfvars.j2"
+    dest: "{{ flux_terraform_templates }}/terraform.tfvars"
+    mode: 0640
+
+# Flux CD Templates
+- name: Create flux gitsource auth template
+  template:
+    src: "flux/flux-gitsource-auth.yml.j2"
+    dest: "{{ flux_templates_dir }}/flux-gitsource-auth.yml"
+    mode: 0640
+
+- name: Create flux gitsource template
+  template:
+    src: "flux/flux-gitsource.yml.j2"
+    dest: "{{ flux_templates_dir }}/flux-gitsource.yml"
+    mode: 0640
+
+- name: Create flux terraform template
+  template:
+    src: "flux/flux-terraform.yml.j2"
+    dest: "{{ flux_templates_dir }}/flux-terraform.yml"
+    mode: 0640
+
+- name: Create flux kustomize template
+  template:
+    src: "flux/flux-kustomize.yml.j2"
+    dest: "{{ flux_templates_dir }}/flux-kustomize.yml"
+    mode: 0640
+
+
+# Move cluster templates
+- name: Move file from cluster template files
+  ansible.builtin.command: >
+    mv {{ tmp_dir }}/{{ cluster_name }}.yml {{ flux_cluster_templates }}/{{ cluster_name }}.yml
+  args:
+    removes: "{{ tmp_dir }}/{{ cluster_name }}.yml"
+    creates: "{{ flux_cluster_templates }}/{{ cluster_name }}.yml"
+
+- name: Flux CD Templates created
+  ansible.builtin.meta: end_play
+  when: fluxcd_deployment | bool

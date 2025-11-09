@@ -1,0 +1,14 @@
+variable "cloud" {
+  type        = string
+  description = "Name of the OpenStack cloud in clouds.yaml"
+}
+
+variable "cluster_name" {
+  type        = string
+  description = "Cluster name prefix"
+}
+
+variable "source_ips" {
+  type        = list(string)
+  description = "List of source IP CIDRs allowed to access the Kubernetes API"
+}
