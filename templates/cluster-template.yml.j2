@@ -1,18 +1,18 @@
 apiVersion: v1
 data:
-  cacert: ${OPENSTACK_CLOUD_CACERT_B64}
-  clouds.yaml: ${OPENSTACK_CLOUD_YAML_B64}
+  cacert: {{ base64_ca_cert.stdout }}
+  clouds.yaml: {{ base64_cloud_yaml.stdout }}
 kind: Secret
 metadata:
   labels:
     clusterctl.cluster.x-k8s.io/move: "true"
-  name: ${CLUSTER_NAME}-cloud-config
+  name: {{ cluster_name }}-cloud-config
   namespace: {{ cluster_namespace }}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: {{ cluster_name }}-md-0
   namespace: {{ cluster_namespace }}
 spec:
   template:
@@ -43,34 +43,31 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: ${CLUSTER_NAME}
+  name: {{ cluster_name }}
   namespace: {{ cluster_namespace }}
 spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-      - ${CLUSTER_POD_CIDR}
+      - {{ cluster_pod_cidr }}
     serviceDomain: cluster.local
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
-    name: ${CLUSTER_NAME}-control-plane
+    name: {{ cluster_name }}-control-plane
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: OpenStackCluster
-    name: ${CLUSTER_NAME}
+    name: {{ cluster_name }}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: {{ cluster_name }}-md-0
   namespace: {{ cluster_namespace }}
-  annotations:
-    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "${WORKER_MAX_MACHINE_COUNT}"
-    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "${WORKER_MACHINE_COUNT}"
 spec:
-  clusterName: ${CLUSTER_NAME}
-  replicas: ${WORKER_MACHINE_COUNT}
+  clusterName: {{ cluster_name }}
+  replicas: {{ cluster_worker_count }}
   selector:
     matchLabels: null
   template:
@@ -79,19 +76,19 @@ spec:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
-          name: ${CLUSTER_NAME}-md-0
-      clusterName: ${CLUSTER_NAME}
-      failureDomain: ${OPENSTACK_FAILURE_DOMAIN}
+          name: {{ cluster_name }}-md-0
+      clusterName: {{ cluster_name }}
+      failureDomain: nova
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: OpenStackMachineTemplate
-        name: ${CLUSTER_NAME}-md-0
-      version: ${KUBERNETES_VERSION}
+        name: {{ cluster_name }}-md-0
+      version: {{ kubernetes_version }}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: {{ cluster_name }}-control-plane
   namespace: {{ cluster_namespace }}
 spec:
   kubeadmConfigSpec:
@@ -136,24 +133,24 @@ spec:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: OpenStackMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
-  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-  version: ${KUBERNETES_VERSION}
+      name: {{ cluster_name }}-control-plane
+  replicas: {{ cluster_control_plane_count }}
+  version: {{ kubernetes_version }}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackCluster
 metadata:
-  name: ${CLUSTER_NAME}
+  name: {{ cluster_name }}
   namespace: {{ cluster_namespace }}
 spec:
   apiServerLoadBalancer:
     enabled: true
     provider: ovn
   externalNetwork:
-    id: ${OPENSTACK_EXTERNAL_NETWORK_ID}
+    id: {{ cluster_external_network_id }}
   identityRef:
-    cloudName: ${OPENSTACK_CLOUD}
-    name: ${CLUSTER_NAME}-cloud-config
+    cloudName: openstack
+    name: {{ cluster_name }}-cloud-config
   network:
     filter:
       name: {{ cluster_network }}
@@ -164,16 +161,16 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: {{ cluster_name }}-control-plane
   namespace: {{ cluster_namespace }}
 spec:
   template:
     spec:
-      flavor: ${OPENSTACK_CONTROL_PLANE_MACHINE_FLAVOR}
+      flavor: {{ control_plane_flavor }}
       image:
         filter:
-          name: ${OPENSTACK_IMAGE_NAME}
-      sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
+          name: {{ capi_image_name }}
+      sshKeyName: {{ openstack_ssh_key }}
       securityGroups:
       - filter:
           name: default
@@ -206,16 +203,16 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: {{ cluster_name }}-md-0
   namespace: {{ cluster_namespace }}
 spec:
   template:
     spec:
-      flavor: ${OPENSTACK_NODE_MACHINE_FLAVOR}
+      flavor: {{ worker_flavour }}
       image:
         filter:
-          name: ${OPENSTACK_IMAGE_NAME}
-      sshKeyName: ${OPENSTACK_SSH_KEY_NAME}
+          name: {{ capi_image_name }}
+      sshKeyName: {{ openstack_ssh_key }}
       securityGroups:
       - filter:
           name: default

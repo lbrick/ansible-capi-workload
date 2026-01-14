@@ -4,6 +4,13 @@ kind: Deployment
 metadata:
   name: cluster-autoscaler-{{ cluster_name }} 
   namespace: {{ autoscaler_ns }}
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: {{ cluster_name }}
+      uid: {{ cluster_uid }}
+      blockOwnerDeletion: false
+      controller: false
   labels:
     app: cluster-autoscaler
 spec:
@@ -23,16 +30,17 @@ spec:
         - /cluster-autoscaler
         args:
         - --cloud-provider=clusterapi
-        - --cloud-config=/mnt/kubeconfig
+        - --kubeconfig=/mnt/value
+        - --clusterapi-cloud-config-authoritative
         - --node-group-auto-discovery=clusterapi:clusterName={{ cluster_name }}
         volumeMounts:
-        - name: mgnt-kubeconfig
+        - name: workload-kubeconfig
           mountPath: /mnt
           readOnly: true
       volumes:
-      - name: mgnt-kubeconfig
+      - name: workload-kubeconfig
         secret:
-          secretName: kubeconfig
+          secretName: {{ cluster_name }}-kubeconfig
       serviceAccountName: cluster-autoscaler
       terminationGracePeriodSeconds: 10
       tolerations:

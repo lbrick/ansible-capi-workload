@@ -1,153 +1,51 @@
 ---
-- name: Check for auto-scaler pods
+- name: Get {{ cluster_name }} UID
+  shell: >
+    kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.metadata.uid}'
+  register: cluster_uid_output
+
+- name: Set {{ cluster_name }} UID
+  set_fact:
+    cluster_uid: "{{ cluster_uid_output.stdout }}"
+
+- name: Create auto-scaler deployment template
+  template:
+    src: "autoscaler-deployment.yml.j2"
+    dest: "{{ tmp_dir }}/autoscaler-deployment.yml"
+    mode: 0640
+
+- name: Deploy auto-scaler for {{ cluster_name }}
   shell: >-
-    kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig get pods -A | grep -c cluster-autoscaler
-  register: autoscaler_pods
-  ignore_errors: true
+    kubectl apply -f {{ tmp_dir }}/autoscaler-deployment.yml
 
-- name: Install and configure cluster auto-scaler
-  block: 
+# - name: Create high pod priority class template
+#   template:
+#     src: "high-priority-class.yml.j2"
+#     dest: "{{ tmp_dir }}/high-priority-class.yml"
+#     mode: 0640
 
-    - name: Get {{ cluster_name }} UID
-      shell: >
-        kubectl get cluster {{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.metadata.uid}'
-      register: cluster_uid_output
+# - name: Deploy high pod priority class for {{ cluster_name }}
+#   shell: >-
+#     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-priority-class.yml
 
-    - name: Set {{ cluster_name }} UID
-      set_fact:
-        cluster_uid: "{{ cluster_uid_output.stdout }}"
+# - name: Create low pod priority class template
+#   template:
+#     src: "low-priority-class.yml.j2"
+#     dest: "{{ tmp_dir }}/low-priority-class.yml"
+#     mode: 0640
 
-    - name: Create ServiceAccount with ownerReference
-      template:
-        src: "autoscaler-sa.yml.j2"
-        dest: "{{ tmp_dir }}/{{ cluster_name }}-sa.yml"
-        mode: 0644
+# - name: Deploy low pod priority class for {{ cluster_name }}
+#   shell: >-
+#     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-priority-class.yml
 
-    - name: Apply ServiceAccount
-      shell: kubectl apply -f {{ tmp_dir }}/{{ cluster_name }}-sa.yml
+# - name: Create dummy pod template
+#   template:
+#     src: "dummy-pod.yml.j2"
+#     dest: "{{ tmp_dir }}/dummy-pod.yml"
+#     mode: 0640
+#   when: autoscaler_overprovision|default(false)|bool == true
 
-    - name: Get SA token from secret
-      ansible.builtin.shell: >
-        kubectl get secret cluster-autoscaler-token-{{ cluster_name }} -n {{ cluster_namespace }} -o jsonpath='{.data.token}' | base64 --decode
-      register: sa_token
-      until: sa_token.stdout != ""
-      retries: 10
-      delay: 3
-
-    - name: Create Role manifest for Machine API management
-      template:
-        src: "autoscaler-role.yml.j2"
-        dest: "{{ tmp_dir }}/autoscaler-role.yml"
-        mode: 0640
-
-    - name: Create RoleBinding manifest
-      template:
-        src: "autoscaler-rolebinding.yml.j2"
-        dest: "{{ tmp_dir }}/autoscaler-rolebinding.yml"
-        mode: 0640
-
-    - name: Apply RBAC manifests
-      shell: >
-        kubectl apply -f {{ tmp_dir }}/autoscaler-role.yml &&
-        kubectl apply -f {{ tmp_dir }}/autoscaler-rolebinding.yml
-
-    - name: Get current context
-      shell: kubectl config current-context
-      register: current_context
-
-    - name: Get cluster name from current context
-      shell: >
-        kubectl config view -o jsonpath='{.contexts[?(@.name=="{{ current_context.stdout }}")].context.cluster}'
-      register: context_cluster_name
-
-    - name: Get management cluster endpoint by cluster name
-      shell: >
-        kubectl config view -o jsonpath='{.clusters[?(@.name=="{{ context_cluster_name.stdout }}")].cluster.server}'
-      register: mgmt_cluster_endpoint
-
-    - name: Set management cluster endpoint
-      set_fact:
-        cluster_endpoint: "{{ mgmt_cluster_endpoint.stdout }}"
-
-    - name: Get management CA cert by cluster name
-      shell: >
-        kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="{{ context_cluster_name.stdout }}")].cluster.certificate-authority-data}'
-      register: management_ca_crt
-
-    - name: Set management cluster CA
-      set_fact:
-        cluster_ca_crt: "{{ management_ca_crt.stdout }}"
-
-    - name: Create autoscaler kubeconfig from SA token
-      copy:
-        dest: "{{ tmp_dir }}/autoscaler-kubeconfig"
-        mode: '0600'
-        content: |
-          apiVersion: v1
-          kind: Config
-          clusters:
-          - name: capi-cluster
-            cluster:
-              certificate-authority-data: {{ cluster_ca_crt }}
-              server: {{ cluster_endpoint }}
-          contexts:
-          - name: capi-context
-            context:
-              cluster: capi-cluster
-              user: sa-user
-              namespace: {{ cluster_namespace }}
-          current-context: capi-context
-          users:
-          - name: sa-user
-            user:
-              token: {{ sa_token.stdout }}
-
-    - name: Create kubeconfig secret for autoscaler in workload cluster kube-system namespace
-      shell: >
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig create secret generic kubeconfig \
-          --from-file=kubeconfig={{ tmp_dir }}/autoscaler-kubeconfig -n kube-system --dry-run=client -o yaml | \
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f -
-
-    - name: Create auto-scaler deployment template
-      template:
-        src: "autoscaler-deployment.yml.j2"
-        dest: "{{ tmp_dir }}/autoscaler-deployment.yml"
-        mode: 0640
-
-    - name: Deploy auto-scaler for {{ cluster_name }}
-      shell: >-
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/autoscaler-deployment.yml
-
-    - name: Create high pod priority class template
-      template:
-        src: "high-priority-class.yml.j2"
-        dest: "{{ tmp_dir }}/high-priority-class.yml"
-        mode: 0640
-
-    - name: Deploy high pod priority class for {{ cluster_name }}
-      shell: >-
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/high-priority-class.yml
-
-    - name: Create low pod priority class template
-      template:
-        src: "low-priority-class.yml.j2"
-        dest: "{{ tmp_dir }}/low-priority-class.yml"
-        mode: 0640
-
-    - name: Deploy low pod priority class for {{ cluster_name }}
-      shell: >-
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/low-priority-class.yml
-
-    - name: Create dummy pod template
-      template:
-        src: "dummy-pod.yml.j2"
-        dest: "{{ tmp_dir }}/dummy-pod.yml"
-        mode: 0640
-      when: autoscaler_overprovision|default(false)|bool == true
-
-    - name: Deploy dummy pod for {{ cluster_name }}
-      shell: >-
-        kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
-      when: autoscaler_overprovision|default(false)|bool == true
-  when:
-    - autoscaler_pods.stdout != "1"
+# - name: Deploy dummy pod for {{ cluster_name }}
+#   shell: >-
+#     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/dummy-pod.yml
+#   when: autoscaler_overprovision|default(false)|bool == true
