@@ -7,8 +7,8 @@
 
 - name: Deploy NVIDIA GPU operator 
   include_tasks: gpu-nvidia-operator.yml
-  when: (gpu_operator | default('hami')) == "nvidia"
+  when: (gpu_operator | default('nvidia')) == "nvidia"
 
 - name: Deploy HAMi GPU operator 
   include_tasks: gpu-hami-operator.yml
-  when: (gpu_operator | default('hami')) == "hami"
+  when: (gpu_operator | default('nvidia')) == "hami"

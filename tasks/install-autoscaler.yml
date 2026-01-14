@@ -18,6 +18,12 @@
   shell: >-
     kubectl apply -f {{ tmp_dir }}/autoscaler-deployment.yml
 
+- name: Copy auto-scaler template file from {{ tmp_dir}} to {{ cluster_support_apps }}
+  ansible.builtin.command: >
+    cp {{ tmp_dir }}/autoscaler-deployment.yml {{ cluster_support_apps }}/autoscaler-deployment.yaml
+  args:
+    creates: "{{ cluster_support_apps }}/autoscaler-deployment.yaml"
+
 # - name: Create high pod priority class template
 #   template:
 #     src: "high-priority-class.yml.j2"

@@ -1,0 +1,91 @@
+---
+- name: Setting OIDC auth boolean to {{ kube_oidc_auth }}
+  set_fact:
+    enable_oidc_auth: "{{ kube_oidc_auth }}"
+
+- name: Copy create_base64_ca_cert.sh
+  copy:
+    src: "files/create_base64_ca_cert.sh"
+    dest: "{{ tmp_dir }}/create_base64_ca_cert.sh"
+    mode: 0770
+
+- name: Run create_base64_ca_cert for {{ cluster_name }}
+  shell: >-
+    {{ tmp_dir }}/create_base64_ca_cert.sh \
+    {{ clouds_yaml_location }} openstack
+  register: base64_ca_cert
+
+- name: Copy create_base64_yaml.sh
+  copy:
+    src: "files/create_base64_yaml.sh"
+    dest: "{{ tmp_dir }}/create_base64_yaml.sh"
+    mode: 0770
+
+- name: Run create_base64_yaml for {{ cluster_name }}
+  shell: >-
+    {{ tmp_dir }}/create_base64_yaml.sh \
+    {{ clouds_yaml_location }} openstack
+  register: base64_cloud_yaml
+
+- name: Create clusterctl template
+  template:
+    src: "cluster-template.yml.j2"
+    dest: "{{ tmp_dir }}/cluster-template.yml"
+    mode: 0640
+
+- name: Generate clusterctl yaml for {{ cluster_name }}
+  shell: >-
+    clusterctl generate cluster {{ cluster_name }} \
+    --target-namespace={{ cluster_namespace }} \
+    --from {{ tmp_dir }}/cluster-template.yml > {{ tmp_dir }}/{{ cluster_name }}.yml
+
+# This is templating for going into git repos past this point
+
+- name: Creating template dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ terraform_templates }}"
+    - "{{ cluster_templates }}"
+    - "{{ cluster_apps }}"
+    - "{{ cluster_support_apps }}"
+
+# Terraform Templates
+- name: Create main.tf template
+  template:
+    src: "terraform/main.tf.j2"
+    dest: "{{ terraform_templates }}/main.tf"
+    mode: 0640
+
+- name: Create variables.tf template
+  template:
+    src: "terraform/variables.tf.j2"
+    dest: "{{ terraform_templates }}/variables.tf"
+    mode: 0640
+
+- name: Create terraform.tfvars template
+  template:
+    src: "terraform/terraform.tfvars.j2"
+    dest: "{{ terraform_templates }}/terraform.tfvars"
+    mode: 0640
+
+- name: Copy cluster template file from {{ tmp_dir}} to {{ cluster_templates }}
+  ansible.builtin.command: >
+    cp {{ tmp_dir }}/{{ cluster_name }}.yml {{ cluster_templates }}/{{ cluster_name }}.yaml
+  args:
+    creates: "{{ cluster_templates }}/{{ cluster_name }}.yaml"
+
+# Generate Readme files
+- name: Copy cluster-deployment-readme.md
+  copy:
+    src: "files/cluster-deployment-readme.md"
+    dest: "{{ cluster_apps }}/README.md"
+    mode: 0770
+
+- name: Copy cluster-support-services-readme.md
+  copy:
+    src: "files/cluster-support-services-readme.md"
+    dest: "{{ cluster_support_apps }}/README.md"
+    mode: 0770

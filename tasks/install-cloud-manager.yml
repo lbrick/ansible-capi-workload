@@ -44,3 +44,16 @@
         -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml
   when:
     - cloud_config_secret.stdout != "1" and openstack_cloud_pods.stdout != "1"
+
+- name: Download the cloud-controller-manager manifests for {{ cluster_name }}
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ cluster_apps }}/{{ item.name }}"
+    mode: '0755'
+  with_items:
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/cloud-controller-manager-roles.yaml"
+      name: "cloud-controller-manager-roles.yaml"
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml"
+      name: "cloud-controller-manager-role-bindings.yaml"
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml"
+      name: "cloud-controller-manager-ds.yaml"

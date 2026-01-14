@@ -1,0 +1,7 @@
+cloud         = "openstack"
+cluster_name  = "{{ cluster_name }}"
+source_ips    = [
+{% for source_ip in source_ips %}
+    "{{ source_ip }}",
+{% endfor %}
+    ]

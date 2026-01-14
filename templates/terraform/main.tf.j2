@@ -1,0 +1,98 @@
+terraform {
+  required_providers {
+    openstack = {
+      source  = "terraform-provider-openstack/openstack"
+      version = "~> 1.54.1"
+    }
+  }
+}
+
+provider "openstack" {
+  cloud = var.cloud
+}
+
+# Control plane security group
+resource "openstack_networking_secgroup_v2" "controlplane" {
+  name        = "k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-controlplane"
+  description = "Control plane security group"
+}
+
+# Worker security group
+resource "openstack_networking_secgroup_v2" "worker" {
+  name        = "k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker"
+  description = "Worker security group"
+}
+
+# --- Rules for control plane ingress from control plane and worker
+resource "openstack_networking_secgroup_rule_v2" "in_cluster_ingress_cp_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = null
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "In-cluster ingress (controlplane → controlplane)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "in_cluster_ingress_cp_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = null
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "In-cluster ingress (worker → controlplane)"
+}
+
+# --- IP-in-IP (Calico)
+resource "openstack_networking_secgroup_rule_v2" "ip_in_ip_cp_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = 4
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "IP-in-IP (Calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "ip_in_ip_cp_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = 4
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "IP-in-IP (Calico)"
+}
+
+# --- BGP (Calico)
+resource "openstack_networking_secgroup_rule_v2" "bgp_cp_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "BGP (Calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "bgp_cp_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "BGP (Calico)"
+}
+
+# --- Kubernetes API rule
+resource "openstack_networking_secgroup_rule_v2" "k8s_api" {
+  for_each          = toset(var.source_ips)
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 6443
+  port_range_max    = 6443
+  remote_ip_prefix  = each.value
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "Kubernetes API"
+}

@@ -8,6 +8,15 @@
 - name: Create and initialize clusterctl and cloud manager
   block:
 
+    - name: Creating {{ tmp_dir }} if it does not exist
+      file:
+        path: "{{ tmp_dir }}"
+        state: directory
+        mode: 0755
+
+    - name: Generate CAPI Cluster Templates
+      include_tasks: generate-cluster-templates.yml
+
     - name: Deployed ansible managed CAPI security groups
       delegate_to: localhost
       become: false
@@ -89,6 +98,9 @@
 
     - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml
+
+    - name: Post-Deployment Tasks
+      include_tasks: post-cluster-tasks.yml
   when:
     - clouds_yaml_file.stat.exists
 

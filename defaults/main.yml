@@ -118,3 +118,14 @@ kube_oidc_ca_file: "{{ ca_cert_file }}"
 preKubeadmCommands: []
 
 postKubeadmCommands: []
+
+
+## Templating options
+
+templates_dir: /tmp/{{ cluster_name }}-templates
+
+cluster_templates: "{{ templates_dir }}/cluster"
+terraform_templates: "{{ templates_dir }}/terraform"
+
+cluster_apps: "{{ templates_dir }}/cluster-deployments"
+cluster_support_apps: "{{ templates_dir }}/cluster-support-services"
