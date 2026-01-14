@@ -3,12 +3,6 @@
   set_fact:
     enable_oidc_auth: "{{ kube_oidc_auth }}"
 
-- name: Create clusterctl template
-  template:
-    src: "cluster-template.yml.j2"
-    dest: "{{ tmp_dir }}/cluster-template.yml"
-    mode: 0640
-
 - name: Copy create_base64_ca_cert.sh
   copy:
     src: "files/create_base64_ca_cert.sh"
@@ -33,16 +27,18 @@
     {{ clouds_yaml_location }} openstack
   register: base64_cloud_yaml
 
-- name: Create clusterctl config
+- debug:
+    msg: "{{ base64_cloud_yaml }}"
+
+- name: Create clusterctl template
   template:
-    src: "openstack-cluster-config.yml.j2"
-    dest: "{{ tmp_dir }}/{{ cluster_name }}-openstack-cluster-config.yml"
+    src: "cluster-template.yml.j2"
+    dest: "{{ tmp_dir }}/cluster-template.yml"
     mode: 0640
 
 - name: Generate clusterctl yaml for {{ cluster_name }}
   shell: >-
     clusterctl generate cluster {{ cluster_name }} \
-    --config {{ tmp_dir }}/{{ cluster_name }}-openstack-cluster-config.yml \
     --target-namespace={{ cluster_namespace }} \
     --from {{ tmp_dir }}/cluster-template.yml > {{ tmp_dir }}/{{ cluster_name }}.yml
 
