@@ -17,6 +17,10 @@
     - name: Generate CAPI Cluster Templates
       include_tasks: generate-cluster-templates.yml
 
+    - name: Generate Flux Templates
+      include_tasks: generate-flux-templates.yml
+      when: generate_templates == true
+
     - name: Deployed ansible managed CAPI security groups
       delegate_to: localhost
       become: false
@@ -98,9 +102,7 @@
 
     - name: Create and initialize cluster metrics server
       include_tasks: install-metrics-server.yml
-
-    - name: Post-Deployment Tasks
-      include_tasks: post-cluster-tasks.yml
+      
   when:
     - clouds_yaml_file.stat.exists
 

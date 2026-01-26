@@ -1,0 +1,51 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-capi
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./cluster-definition
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+  targetNamespace: nesi-training-prod
+  timeout: 2m0s
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-infra
+  namespace: nesi-training-prod
+spec:
+  interval: 10m
+  path: "./cluster-infra"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+    namespace: flux-system
+  # THIS makes the infra go to the workload cluster, NOT the management cluster
+  kubeConfig:
+    secretRef:
+      name: {{ cluster_name }}-kubeconfig
+      key: value
+{% if cluster_worker_count < cluster_max_worker_count %}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-services
+  namespace: nesi-training-prod
+spec:
+  interval: 10m
+  path: "./cluster-services"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+    namespace: flux-system
+{% endif %}

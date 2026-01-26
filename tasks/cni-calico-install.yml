@@ -10,10 +10,4 @@
     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   when:
     - calico_kube_pods.stdout != "1"
-
-- name: Download the CNI mainifest for {{ cluster_name }}
-  ansible.builtin.get_url:
-    url: "https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
-    dest: "{{ cluster_apps }}/calico-cni.yaml"
-    mode: '0755'
    

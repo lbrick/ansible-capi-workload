@@ -1,0 +1,13 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: {{ cluster_name }}
+  namespace: flux-system
+spec:
+  interval: 30s
+  ref:
+    branch: main
+  url: {{ cluster_definition_repo }}
+  secretRef:
+    name: {{ flux_cluster_auth_secret }}

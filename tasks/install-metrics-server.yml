@@ -8,9 +8,3 @@
 - name: Deploy metrics server for {{ cluster_name }}  
   shell: >-
     kubectl --kubeconfig {{ tmp_dir }}/{{ cluster_name }}.kubeconfig apply -f {{ tmp_dir }}/metrics-server.yml
-
-- name: Copy metrics server template file from {{ tmp_dir}} to {{ cluster_apps }}
-  ansible.builtin.command: >
-    cp {{ tmp_dir }}/metrics-server.yml {{ cluster_apps }}/metrics-server.yaml
-  args:
-    creates: "{{ cluster_apps }}/metrics-server.yaml"

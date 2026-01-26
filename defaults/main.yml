@@ -51,7 +51,7 @@ helm_cli_repo: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-hel
 ca_cert_dir: /usr/local/share/ca-certificates
 ca_cert_file: "{{ ca_cert_dir }}/zero_ca.crt"
 
-autoscaler_ns: "kube-system"
+autoscaler_ns: "{{ cluster_rdc_project | lower }}"
 autoscaler_image: "registry.k8s.io/autoscaling/cluster-autoscaler:v1.32.2"
 autoscaler_overprovision: false
 
@@ -122,10 +122,19 @@ postKubeadmCommands: []
 
 ## Templating options
 
+generate_templates: true
+fluxcd_deployment: true
+
 templates_dir: /tmp/{{ cluster_name }}-templates
 
-cluster_templates: "{{ templates_dir }}/cluster"
-terraform_templates: "{{ templates_dir }}/terraform"
+cluster_repo_dir: "{{ templates_dir }}/cluster-repo"
+flux_repo_dir: "{{ templates_dir }}/flux-repo"
 
-cluster_apps: "{{ templates_dir }}/cluster-deployments"
-cluster_support_apps: "{{ templates_dir }}/cluster-support-services"
+cluster_definition: "{{ cluster_repo_dir }}/cluster-definition"
+terraform_templates: "{{ cluster_repo_dir }}/terraform"
+
+cluster_infra: "{{ cluster_repo_dir }}/cluster-infra"
+cluster_support_apps: "{{ cluster_repo_dir }}/cluster-services"
+
+cluster_definition_repo: https://gitlab.com/nesi1/flexihpc/cluster-definition-capi
+flux_cluster_auth_secret: flux-deploy-authentication

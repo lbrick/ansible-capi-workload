@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   name: cluster-autoscaler-{{ cluster_name }} 
   namespace: {{ autoscaler_ns }}
+{% if not fluxcd_deployment %}
   ownerReferences:
     - apiVersion: cluster.x-k8s.io/v1beta1
       kind: Cluster
@@ -11,6 +12,7 @@ metadata:
       uid: {{ cluster_uid }}
       blockOwnerDeletion: false
       controller: false
+{% endif %}
   labels:
     app: cluster-autoscaler
 spec:

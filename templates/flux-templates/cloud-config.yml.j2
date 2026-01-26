@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+data:
+  cacert: {{ base64_ca_cert.stdout }}
+  clouds.yaml: {{ base64_cloud_yaml.stdout }}
+kind: Secret
+metadata:
+  labels:
+    clusterctl.cluster.x-k8s.io/move: "true"
+  name: {{ cluster_name }}-cloud-config
+  namespace: flux-system

@@ -1,0 +1,120 @@
+---
+- name: Creating template dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ cluster_repo_dir }}"
+    - "{{ flux_repo_dir }}"
+    - "{{ terraform_templates }}"
+    - "{{ cluster_definition }}"
+    - "{{ cluster_infra }}"
+    - "{{ cluster_support_apps }}"
+
+# Flux CD Items
+- name: Create flux source template
+  template:
+    src: "templates/flux-templates/source.yml.j2"
+    dest: "{{ flux_repo_dir }}/source.yml"
+    mode: 0640
+
+- name: Create flux kustomize template
+  template:
+    src: "templates/flux-templates/kustomize.yml.j2"
+    dest: "{{ flux_repo_dir }}/kustomize.yml"
+    mode: 0640
+
+- name: Create flux terraform template
+  template:
+    src: "templates/flux-templates/terraform.yml.j2"
+    dest: "{{ flux_repo_dir }}/terraform.yml"
+    mode: 0640
+
+- name: Create flux cloud-conf template
+  template:
+    src: "templates/flux-templates/cloud-config.yml.j2"
+    dest: "{{ flux_repo_dir }}/cloud-config.yml"
+    mode: 0640
+
+# Terraform Templates
+- name: Create main.tf template
+  template:
+    src: "terraform/main.tf.j2"
+    dest: "{{ terraform_templates }}/main.tf"
+    mode: 0640
+
+- name: Create variables.tf template
+  template:
+    src: "terraform/variables.tf.j2"
+    dest: "{{ terraform_templates }}/variables.tf"
+    mode: 0640
+
+- name: Create terraform.tfvars template
+  template:
+    src: "terraform/terraform.tfvars.j2"
+    dest: "{{ terraform_templates }}/terraform.tfvars"
+    mode: 0640
+
+# Cluster Definition
+
+- name: Copy cluster template file from {{ tmp_dir}} to {{ cluster_definition }}
+  ansible.builtin.command: >
+    cp {{ tmp_dir }}/{{ cluster_name }}.yml {{ cluster_definition }}/{{ cluster_name }}.yaml
+  args:
+    creates: "{{ cluster_definition }}/{{ cluster_name }}.yaml"
+
+# Infra Mainifests
+
+## CNI Mainifests
+- name: Download the calico CNI mainifest for {{ cluster_name }}
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
+    dest: "{{ cluster_infra }}/02-calico-cni.yaml"
+    mode: '0755'
+  when: (cni_provider | default('calico')) == "calico"
+
+## Cloud Controller Mainifests
+- name: Get cloud-conf.yaml for cloud-controller-manager
+  ansible.builtin.command: >
+    cp {{ tmp_dir }}/cloud-config.yaml {{ cluster_infra }}/01-cloud-config.yaml
+  args:
+    creates: "{{ cluster_infra }}/01-cloud-config.yaml"
+
+- name: Download the cloud-controller-manager manifests for {{ cluster_name }}
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ cluster_infra }}/{{ item.name }}"
+    mode: '0755'
+  with_items:
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/cloud-controller-manager-roles.yaml"
+      name: "03-cloud-controller-manager-roles.yaml"
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml"
+      name: "04-cloud-controller-manager-role-bindings.yaml"
+    - url: "https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/{{ cloud_provider_openstack_version }}/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml"
+      name: "05-cloud-controller-manager-ds.yaml"
+
+# Support Services Mainifests
+
+## Autoscaler
+
+- name: Create auto-scaler deployment template
+  template:
+    src: "autoscaler-deployment.yml.j2"
+    dest: "{{ cluster_support_apps }}/99-autoscaler-deployment.yaml"
+    mode: 0640
+  when:
+  - cluster_worker_count < cluster_max_worker_count
+
+## Metrics Server
+- name: Create metrics server template
+  template:
+    src: "metrics-server.yml.j2"
+    dest: "{{ cluster_infra }}/07-metrics-server.yaml"
+    mode: 0640
+
+# Stop the play if this is true
+
+- name: Flux CD Templates created
+  ansible.builtin.meta: end_play
+  when: fluxcd_deployment | bool
