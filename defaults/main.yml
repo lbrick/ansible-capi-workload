@@ -71,6 +71,7 @@ enable_gpu_nodes: false
 
 cluster_gpu_worker_count: 1
 gpu_worker_flavour: gpu1.40cpu200ram.a40.1g.48gb
+gpu_worker_volume_size: 30
 
 gpu_kubernetes_version: v1.33.3
 capi_gpu_image_name: rocky-9-containerd-hpc-nvidia-v1.33.3
