@@ -65,7 +65,7 @@ spec:
             name: {{ additional_networks }}
 {% endfor %}
 {% endif %}
-{% if worker_volume_size > 30 %}
+{% if gpu_worker_volume_size > 30 %}
       rootVolume:
-          sizeGiB: {{ worker_volume_size }}
+          sizeGiB: {{ gpu_worker_volume_size }}
 {% endif %}
