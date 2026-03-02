@@ -66,8 +66,8 @@ metadata:
   name: {{ cluster_name }}-md-0
   namespace: {{ cluster_namespace }}
   annotations:
-    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "${WORKER_MAX_MACHINE_COUNT}"
-    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "${WORKER_MACHINE_COUNT}"
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "${cluster_max_worker_count}"
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "${cluster_worker_count}"
 spec:
   clusterName: {{ cluster_name }}
   replicas: {{ cluster_worker_count }}
