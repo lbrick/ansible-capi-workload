@@ -1,4 +1,14 @@
 ---
+# Fleet entry generator — set true to generate GitOps files instead of provisioning
+generate_fleet_entry: false
+
+fleet_git_source: reannz-capi-fleet
+fleet_cluster_path: "clusters/workload/{{ cluster_name }}"
+
+# Output root — defaults next to the invoking playbook
+fleet_output_dir: "{{ playbook_dir }}/fleet-output"
+
+
 kubernetes_version: v1.30.5
 capi_image_name: rocky-9-containerd-v1.30.5 #ubuntu-2204-kube-v1.26.7-ca
 

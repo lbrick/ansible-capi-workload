@@ -1,0 +1,23 @@
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: {{ cluster_name }}-addons
+  namespace: {{ cluster_namespace }}
+spec:
+  strategy: ApplyOnce
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: {{ cluster_name }}
+  resources:
+    - name: {{ cluster_name }}-ccm-cloud-secret
+      kind: Secret
+    - name: ccm-openstack
+      kind: ConfigMap
+    - name: cni-{{ cni_provider | default('calico') }}
+      kind: ConfigMap
+    - name: metrics-server
+      kind: ConfigMap
+{% if kube_oidc_auth | default(false) | bool %}
+    - name: oidc-rbac
+      kind: ConfigMap
+{% endif %}

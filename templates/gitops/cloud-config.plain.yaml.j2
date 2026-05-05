@@ -1,0 +1,27 @@
+# CAPI cloud-config Secret — applied to management cluster by Flux (SOPS encrypted)
+#
+# 1. Fill in your OpenStack application credential below
+# 2. Encrypt: sops -e cloud-config.plain.yaml > cloud-config.yaml
+# 3. Delete cloud-config.plain.yaml — NEVER commit plaintext
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ cluster_name }}-cloud-config
+  namespace: {{ cluster_namespace }}
+  labels:
+    clusterctl.cluster.x-k8s.io/move: "true"
+stringData:
+  cacert: ""
+  clouds.yaml: |
+    clouds:
+      openstack:
+        auth:
+          auth_url: https://keystone.akl-1.cloud.nesi.org.nz
+          application_credential_id: FILL_IN_APP_CRED_ID
+          application_credential_secret: FILL_IN_APP_CRED_SECRET
+        region_name: akl-1
+        interface: public
+        identity_api_version: 3
+        auth_type: v3applicationcredential
+        verify: false

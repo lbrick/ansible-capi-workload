@@ -1,4 +1,14 @@
 ---
+- name: Generate fleet entry
+  when: generate_fleet_entry | bool
+  block:
+    - name: Check vars for generation
+      include_tasks: check-generate-vars.yml
+    - name: Generate fleet files
+      include_tasks: generate-fleet-entry.yml
+    - name: End play
+      meta: end_play
+
 - name: Check vars are set
   include_tasks: check-vars.yml
 

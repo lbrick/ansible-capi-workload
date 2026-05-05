@@ -1,0 +1,12 @@
+variable "cluster_name" {
+  type = string
+}
+
+variable "cluster_namespace" {
+  type = string
+}
+
+variable "source_ips" {
+  type    = list(string)
+  default = {{ source_ips | default(['163.7.144.0/21']) | to_json }}
+}

@@ -1,0 +1,172 @@
+locals {
+  cp_name     = "k8s-cluster-${var.cluster_namespace}-${var.cluster_name}-secgroup-controlplane"
+  worker_name = "k8s-cluster-${var.cluster_namespace}-${var.cluster_name}-secgroup-worker"
+}
+
+resource "openstack_networking_secgroup_v2" "controlplane" {
+  name        = local.cp_name
+  description = "Ansible Cluster API managed group"
+}
+
+resource "openstack_networking_secgroup_v2" "worker" {
+  name        = local.worker_name
+  description = "Ansible Cluster API managed group"
+}
+
+# ── Control plane rules ──────────────────────────────────────────────────────
+
+resource "openstack_networking_secgroup_rule_v2" "cp_ingress_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "In-cluster Ingress"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_ingress_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "In-cluster Ingress"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_ipip_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "4"
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "IP-in-IP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_ipip_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "4"
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "IP-in-IP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_bgp_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "BGP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_bgp_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "BGP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cp_kube_api" {
+  for_each          = toset(var.source_ips)
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 6443
+  port_range_max    = 6443
+  remote_ip_prefix  = each.key
+  security_group_id = openstack_networking_secgroup_v2.controlplane.id
+  description       = "Kubernetes API"
+}
+
+# ── Worker rules ─────────────────────────────────────────────────────────────
+
+resource "openstack_networking_secgroup_rule_v2" "worker_ingress_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "In-cluster Ingress"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_ingress_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "In-cluster Ingress"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_ipip_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "4"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "IP-in-IP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_ipip_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "4"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "IP-in-IP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_bgp_from_cp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.controlplane.id
+  description       = "BGP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_bgp_from_worker" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 179
+  port_range_max    = 179
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  remote_group_id   = openstack_networking_secgroup_v2.worker.id
+  description       = "BGP (calico)"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_nodeport_tcp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 30000
+  port_range_max    = 32767
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  description       = "Node Port Services"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "worker_nodeport_udp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "udp"
+  port_range_min    = 30000
+  port_range_max    = 32767
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.worker.id
+  description       = "Node Port Services"
+}
+
+output "controlplane_secgroup_id" {
+  value = openstack_networking_secgroup_v2.controlplane.id
+}
+
+output "worker_secgroup_id" {
+  value = openstack_networking_secgroup_v2.worker.id
+}

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler-{{ cluster_name }}
+  namespace: {{ autoscaler_ns | default('kube-system') }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-autoscaler-{{ cluster_name }}
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler-{{ cluster_name }}
+    spec:
+      serviceAccountName: cluster-autoscaler
+      containers:
+        - name: cluster-autoscaler
+          image: {{ autoscaler_image }}
+          command:
+            - ./cluster-autoscaler
+            - --cloud-provider=clusterapi
+            - --namespace={{ cluster_namespace }}
+            - --node-group-auto-discovery=clusterapi:clusterName={{ cluster_name }},namespace={{ cluster_namespace }}
+            - --scale-down-delay-after-add=5m
+            - --scale-down-unneeded-time=5m
+            - --skip-nodes-with-local-storage=false
+            - --expander=least-waste
+            - --balance-similar-node-groups=true
+            - --v=4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists

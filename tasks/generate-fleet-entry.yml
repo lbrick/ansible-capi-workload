@@ -1,0 +1,154 @@
+---
+- name: Set output directories
+  set_fact:
+    _cluster_dir: "{{ fleet_output_dir }}/{{ cluster_name }}"
+    _fleet_entry_dir: "{{ fleet_output_dir }}/{{ cluster_name }}-fleet-entry"
+
+- name: Create output directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ _cluster_dir }}/config"
+    - "{{ _cluster_dir }}/config/autoscaler"
+    - "{{ _cluster_dir }}/config/secgroups"
+    - "{{ _fleet_entry_dir }}"
+
+# ── CAPI cluster manifests ──────────────────────────────────────────────────
+
+- name: Render namespace.yaml
+  template:
+    src: gitops/namespace.yaml.j2
+    dest: "{{ _cluster_dir }}/config/namespace.yaml"
+
+- name: Render cluster.yaml
+  template:
+    src: gitops/cluster.yaml.j2
+    dest: "{{ _cluster_dir }}/config/cluster.yaml"
+
+- name: Render control-plane.yaml
+  template:
+    src: gitops/control-plane.yaml.j2
+    dest: "{{ _cluster_dir }}/config/control-plane.yaml"
+
+- name: Render workers.yaml
+  template:
+    src: gitops/workers.yaml.j2
+    dest: "{{ _cluster_dir }}/config/workers.yaml"
+
+- name: Render healthchecks.yaml
+  template:
+    src: gitops/healthchecks.yaml.j2
+    dest: "{{ _cluster_dir }}/config/healthchecks.yaml"
+
+- name: Render cluster-resource-set.yaml
+  template:
+    src: gitops/cluster-resource-set.yaml.j2
+    dest: "{{ _cluster_dir }}/config/cluster-resource-set.yaml"
+
+- name: Render cloud-config.plain.yaml
+  template:
+    src: gitops/cloud-config.plain.yaml.j2
+    dest: "{{ _cluster_dir }}/config/cloud-config.plain.yaml"
+
+- name: Render ccm-cloud-config.plain.yaml
+  template:
+    src: gitops/ccm-cloud-config.plain.yaml.j2
+    dest: "{{ _cluster_dir }}/config/ccm-cloud-config.plain.yaml"
+
+- name: Render config/kustomization.yaml
+  template:
+    src: gitops/config-kustomization.yaml.j2
+    dest: "{{ _cluster_dir }}/config/kustomization.yaml"
+
+# ── Autoscaler ──────────────────────────────────────────────────────────────
+
+- name: Render autoscaler.yaml
+  template:
+    src: gitops/autoscaler.yaml.j2
+    dest: "{{ _cluster_dir }}/config/autoscaler/autoscaler.yaml"
+
+- name: Render autoscaler/kustomization.yaml
+  template:
+    src: gitops/autoscaler-kustomization.yaml.j2
+    dest: "{{ _cluster_dir }}/config/autoscaler/kustomization.yaml"
+
+# ── Terraform security groups ───────────────────────────────────────────────
+
+- name: Render secgroups/main.tf
+  template:
+    src: gitops/secgroups-main.tf.j2
+    dest: "{{ _cluster_dir }}/config/secgroups/main.tf"
+
+- name: Render secgroups/variables.tf
+  template:
+    src: gitops/secgroups-variables.tf.j2
+    dest: "{{ _cluster_dir }}/config/secgroups/variables.tf"
+
+- name: Copy secgroups/versions.tf
+  copy:
+    src: gitops/secgroups-versions.tf
+    dest: "{{ _cluster_dir }}/config/secgroups/versions.tf"
+
+# ── Flux resources (cluster repo root) ─────────────────────────────────────
+
+- name: Render root kustomization.yaml
+  template:
+    src: gitops/kustomization-root.yaml.j2
+    dest: "{{ _cluster_dir }}/kustomization.yaml"
+
+- name: Render ks.yaml
+  template:
+    src: gitops/ks.yaml.j2
+    dest: "{{ _cluster_dir }}/ks.yaml"
+
+- name: Render secgroups-tf.yaml
+  template:
+    src: gitops/secgroups-tf.yaml.j2
+    dest: "{{ _cluster_dir }}/secgroups-tf.yaml"
+
+# ── Fleet repo entry (clusters/workload/<cluster_name>/) ────────────────────
+
+- name: Render fleet entry gitrepo.yaml
+  template:
+    src: gitops/fleet-gitrepo.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/gitrepo.yaml"
+
+- name: Render fleet entry ks.yaml
+  template:
+    src: gitops/fleet-ks.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/ks.yaml"
+
+- name: Render fleet entry kustomization.yaml
+  template:
+    src: gitops/fleet-kustomization.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/kustomization.yaml"
+
+# ── Management cluster workload-ks snippet ──────────────────────────────────
+
+- name: Render workload-ks entry snippet
+  template:
+    src: gitops/workload-ks-entry.yaml.j2
+    dest: "{{ fleet_output_dir }}/{{ cluster_name }}-workload-ks-entry.yaml"
+
+# ── Next steps ──────────────────────────────────────────────────────────────
+
+- name: Next steps
+  debug:
+    msg:
+      - "Output: {{ fleet_output_dir }}"
+      - ""
+      - "Cluster repo files: {{ _cluster_dir }}"
+      - "  → Commit as own Git repo OR copy into fleet repo at {{ fleet_cluster_path }}"
+      - ""
+      - "Fleet entry files: {{ _fleet_entry_dir }}"
+      - "  → Copy into fleet repo at {{ fleet_cluster_path }}"
+      - ""
+      - "Before committing:"
+      - "  1. Fill credentials in cloud-config.plain.yaml, then:"
+      - "     sops -e cloud-config.plain.yaml > cloud-config.yaml && rm cloud-config.plain.yaml"
+      - "  2. Fill credentials in ccm-cloud-config.plain.yaml, then:"
+      - "     sops -e ccm-cloud-config.plain.yaml > ccm-cloud-config.yaml && rm ccm-cloud-config.plain.yaml"
+      - "  3. Append to fleet repo management/workload-ks.yaml:"
+      - "     cat {{ fleet_output_dir }}/{{ cluster_name }}-workload-ks-entry.yaml >> clusters/management/workload-ks.yaml"

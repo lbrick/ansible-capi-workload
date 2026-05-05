@@ -1,0 +1,37 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineHealthCheck
+metadata:
+  name: {{ cluster_name }}-cp-healthcheck
+  namespace: {{ cluster_namespace }}
+spec:
+  clusterName: {{ cluster_name }}
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/control-plane: ""
+  unhealthyConditions:
+    - type: Ready
+      status: "False"
+      timeout: 5m
+    - type: Ready
+      status: Unknown
+      timeout: 5m
+  maxUnhealthy: "100%"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineHealthCheck
+metadata:
+  name: {{ cluster_name }}-worker-healthcheck
+  namespace: {{ cluster_namespace }}
+spec:
+  clusterName: {{ cluster_name }}
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/deployment-name: {{ cluster_name }}-md-0
+  unhealthyConditions:
+    - type: Ready
+      status: "False"
+      timeout: 5m
+    - type: Ready
+      status: Unknown
+      timeout: 5m
+  maxUnhealthy: "33%"

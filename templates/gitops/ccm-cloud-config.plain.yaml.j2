@@ -1,0 +1,41 @@
+# CCM cloud-config Secret for ClusterResourceSet
+# Applied to management cluster by Flux (SOPS encrypted).
+# ClusterResourceSet then applies the embedded manifest to the workload cluster's kube-system.
+#
+# Steps:
+# 1. Create cloud.conf with your OpenStack credentials (ini format, see example below)
+# 2. Base64-encode a kube-system Secret containing cloud.conf:
+#      MANIFEST=$(cat <<EOF
+#      apiVersion: v1
+#      kind: Secret
+#      metadata:
+#        name: cloud-config
+#        namespace: kube-system
+#      data:
+#        cloud.conf: $(base64 -w0 cloud.conf)
+#      EOF
+#      )
+#      echo "$MANIFEST" | base64 -w0
+# 3. Paste the result as the cloud-config.yaml value below
+# 4. Encrypt: sops -e ccm-cloud-config.plain.yaml > ccm-cloud-config.yaml
+# 5. Delete ccm-cloud-config.plain.yaml — NEVER commit plaintext
+#
+# Example cloud.conf:
+#   [Global]
+#   auth-url=https://keystone.akl-1.cloud.nesi.org.nz
+#   application-credential-id=FILL_IN_APP_CRED_ID
+#   application-credential-secret=FILL_IN_APP_CRED_SECRET
+#   region=akl-1
+#
+#   [LoadBalancer]
+#   lb-provider=ovn
+#   lb-method=SOURCE_IP_PORT
+#   floating-network-id={{ cluster_external_network_id }}
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ cluster_name }}-ccm-cloud-secret
+  namespace: {{ cluster_namespace }}
+data:
+  cloud-config.yaml: FILL_IN_BASE64_OF_KUBE_SYSTEM_SECRET_MANIFEST

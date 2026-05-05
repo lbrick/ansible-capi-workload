@@ -1,0 +1,20 @@
+apiVersion: infra.contrib.fluxcd.io/v1alpha2
+kind: Terraform
+metadata:
+  name: {{ cluster_name }}-secgroups
+  namespace: flux-system
+spec:
+  interval: 5m
+  approvePlan: auto
+  path: ./config/secgroups
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+  vars:
+    - name: cluster_name
+      value: {{ cluster_name }}
+    - name: cluster_namespace
+      value: {{ cluster_namespace }}
+  varsFrom:
+    - kind: Secret
+      name: openstack-tf-credentials

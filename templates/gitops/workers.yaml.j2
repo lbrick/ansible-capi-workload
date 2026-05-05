@@ -1,0 +1,99 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: {{ cluster_name }}-md-0
+  namespace: {{ cluster_namespace }}
+spec:
+  template:
+    spec:
+      files: []
+      joinConfiguration:
+        nodeRegistration:
+{% if cri_socket | default('') | length > 0 %}
+          criSocket: {{ cri_socket }}
+{% endif %}
+          kubeletExtraArgs:
+            cloud-provider: external
+            provider-id: "openstack:///{% raw %}{{ instance_id }}{% endraw %}"
+          name: "{% raw %}{{ local_hostname }}{% endraw %}"
+{% if preKubeadmCommands | default([]) | length > 0 %}
+      preKubeadmCommands:
+{% for cmd in preKubeadmCommands %}
+        - {{ cmd }}
+{% endfor %}
+{% endif %}
+{% if postKubeadmCommands | default([]) | length > 0 %}
+      postKubeadmCommands:
+{% for cmd in postKubeadmCommands %}
+        - {{ cmd }}
+{% endfor %}
+{% endif %}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: {{ cluster_name }}-md-0
+  namespace: {{ cluster_namespace }}
+  annotations:
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "{{ cluster_worker_count }}"
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "{{ cluster_max_worker_count }}"
+spec:
+  clusterName: {{ cluster_name }}
+  replicas: {{ cluster_worker_count }}
+  selector:
+    matchLabels: null
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/deployment-name: {{ cluster_name }}-md-0
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: {{ cluster_name }}-md-0
+      clusterName: {{ cluster_name }}
+      failureDomain: nova
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        name: {{ cluster_name }}-md-0
+      version: {{ kubernetes_version }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: {{ cluster_name }}-md-0
+  namespace: {{ cluster_namespace }}
+spec:
+  template:
+    spec:
+      flavor: {{ worker_flavour }}
+      image:
+        filter:
+          name: {{ capi_image_name }}
+      sshKeyName: {{ openstack_ssh_key }}
+      securityGroups:
+        - filter:
+            name: default
+{% if not (capi_managed_secgroups | default(false) | bool) %}
+        - filter:
+            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
+{% endif %}
+{% for secgroup in additional_cluster_secgroups | default([]) %}
+        - filter:
+            name: {{ secgroup }}
+{% endfor %}
+      ports:
+        - network:
+            filter:
+              name: {{ cluster_network }}
+{% for network in additional_cluster_networks | default([]) %}
+        - network:
+            filter:
+              name: {{ network }}
+{% endfor %}
+{% if (worker_volume_size | default(0) | int) > 30 %}
+      rootVolume:
+        sizeGiB: {{ worker_volume_size }}
+{% endif %}

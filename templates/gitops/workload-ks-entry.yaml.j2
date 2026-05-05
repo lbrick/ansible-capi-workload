@@ -1,0 +1,13 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-fleet
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./{{ fleet_cluster_path }}
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: {{ fleet_git_source }}

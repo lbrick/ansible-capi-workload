@@ -1,0 +1,15 @@
+---
+- name: Check required variables for fleet entry generation
+  assert:
+    that:
+      - cluster_name is defined
+      - cluster_name != 'CAPI_CLUSTER_NAME'
+      - cluster_namespace is defined
+      - openstack_ssh_key is defined
+      - openstack_ssh_key != 'NeSI_RDC_KEYPAIR_NAME'
+      - kubernetes_version is defined
+      - capi_image_name is defined
+      - cluster_external_network_id is defined
+      - cluster_network is defined
+      - cluster_repo_url is defined
+    fail_msg: "Missing or unset required variable — copy tests/test_vars.yml.example to set values"
