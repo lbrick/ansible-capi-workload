@@ -1,0 +1,10 @@
+[Global]
+auth-url={{ _auth_url }}
+application-credential-id={{ _app_cred_id }}
+application-credential-secret={{ _app_cred_secret }}
+region={{ _region }}
+
+[LoadBalancer]
+lb-provider=ovn
+lb-method=SOURCE_IP_PORT
+floating-network-id={{ cluster_external_network_id }}

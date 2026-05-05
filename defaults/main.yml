@@ -8,6 +8,9 @@ fleet_cluster_path: "clusters/workload/{{ cluster_name }}"
 # Output root — defaults next to the invoking playbook
 fleet_output_dir: "{{ playbook_dir }}/fleet-output"
 
+# Age key file used to SOPS-encrypt generated cloud config secrets
+sops_age_key_file: "~/.config/sops/age/keys.txt"
+
 
 kubernetes_version: v1.30.5
 capi_image_name: rocky-9-containerd-v1.30.5 #ubuntu-2204-kube-v1.26.7-ca

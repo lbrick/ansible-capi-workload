@@ -1,4 +1,40 @@
 ---
+# ── Read and parse clouds.yaml ──────────────────────────────────────────────
+
+- name: Read clouds.yaml
+  slurp:
+    src: "{{ clouds_yaml_local_location }}"
+  register: _clouds_yaml_slurp
+
+- name: Parse clouds.yaml and extract credentials
+  set_fact:
+    _clouds_yaml_raw: "{{ _clouds_yaml_slurp.content | b64decode }}"
+    _clouds_data: "{{ _clouds_yaml_slurp.content | b64decode | from_yaml }}"
+
+- name: Set cloud credential facts
+  set_fact:
+    _auth_url: "{{ _clouds_data.clouds[clouds_yaml_cloud].auth.auth_url }}"
+    _app_cred_id: "{{ _clouds_data.clouds[clouds_yaml_cloud].auth.application_credential_id }}"
+    _app_cred_secret: "{{ _clouds_data.clouds[clouds_yaml_cloud].auth.application_credential_secret }}"
+    _region: "{{ _clouds_data.clouds[clouds_yaml_cloud].region_name | default('akl-1') }}"
+
+- name: Build CCM cloud.conf base64
+  set_fact:
+    _ccm_cloud_conf_b64: "{{ lookup('template', role_path + '/templates/gitops/ccm-cloud-conf.j2') | b64encode }}"
+
+# ── Extract SOPS age recipient from key file ────────────────────────────────
+
+- name: Read age key file
+  slurp:
+    src: "{{ sops_age_key_file }}"
+  register: _age_key_file
+
+- name: Extract age public key
+  set_fact:
+    _age_recipient: "{{ _age_key_file.content | b64decode | regex_search('# public key: (age1\\S+)', '\\1') | first }}"
+
+# ── Set output directories ──────────────────────────────────────────────────
+
 - name: Set output directories
   set_fact:
     _cluster_dir: "{{ fleet_output_dir }}/{{ cluster_name }}"
@@ -52,10 +88,32 @@
     src: gitops/cloud-config.plain.yaml.j2
     dest: "{{ _cluster_dir }}/config/cloud-config.plain.yaml"
 
+- name: Encrypt cloud-config.yaml
+  command: >-
+    sops --age {{ _age_recipient }}
+    --output {{ _cluster_dir }}/config/cloud-config.yaml
+    -e {{ _cluster_dir }}/config/cloud-config.plain.yaml
+
+# - name: Remove cloud-config.plain.yaml
+#   file:
+#     path: "{{ _cluster_dir }}/config/cloud-config.plain.yaml"
+#     state: absent
+
 - name: Render ccm-cloud-config.plain.yaml
   template:
     src: gitops/ccm-cloud-config.plain.yaml.j2
     dest: "{{ _cluster_dir }}/config/ccm-cloud-config.plain.yaml"
+
+- name: Encrypt ccm-cloud-config.yaml
+  command: >-
+    sops --age {{ _age_recipient }}
+    --output {{ _cluster_dir }}/config/ccm-cloud-config.yaml
+    -e {{ _cluster_dir }}/config/ccm-cloud-config.plain.yaml
+
+# - name: Remove ccm-cloud-config.plain.yaml
+#   file:
+#     path: "{{ _cluster_dir }}/config/ccm-cloud-config.plain.yaml"
+#     state: absent
 
 - name: Render config/kustomization.yaml
   template:
@@ -146,9 +204,6 @@
       - "  → Copy into fleet repo at {{ fleet_cluster_path }}"
       - ""
       - "Before committing:"
-      - "  1. Fill credentials in cloud-config.plain.yaml, then:"
-      - "     sops -e cloud-config.plain.yaml > cloud-config.yaml && rm cloud-config.plain.yaml"
-      - "  2. Fill credentials in ccm-cloud-config.plain.yaml, then:"
-      - "     sops -e ccm-cloud-config.plain.yaml > ccm-cloud-config.yaml && rm ccm-cloud-config.plain.yaml"
-      - "  3. Append to fleet repo management/workload-ks.yaml:"
+      - "  1. Append to fleet repo management/workload-ks.yaml:"
       - "     cat {{ fleet_output_dir }}/{{ cluster_name }}-workload-ks-entry.yaml >> clusters/management/workload-ks.yaml"
+      - "  (cloud-config.yaml and ccm-cloud-config.yaml already SOPS-encrypted)"
