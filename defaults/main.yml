@@ -8,8 +8,14 @@ fleet_cluster_path: "clusters/workload/{{ cluster_name }}"
 # Output root — defaults next to the invoking playbook
 fleet_output_dir: "{{ playbook_dir }}/fleet-output"
 
-# Age key file used to SOPS-encrypt generated cloud config secrets
+# Age key file used to SOPS-encrypt generated secrets
 sops_age_key_file: "~/.config/sops/age/keys.txt"
+
+# GitLab URL and credentials for the cluster's own repo
+cluster_repo_url: "https://gitlab.com/nesi1/rebase/demos/{{ cluster_name }}"
+cluster_repo_secret: "{{ cluster_name }}-gitlab-token"
+cluster_repo_gitlab_username: git
+cluster_repo_gitlab_token: ""
 
 
 kubernetes_version: v1.30.5

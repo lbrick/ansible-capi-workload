@@ -23,6 +23,13 @@
     that: _clouds_yaml_stat.stat.exists
     fail_msg: "clouds.yaml not found at {{ clouds_yaml_local_location }} — set clouds_yaml_local_location"
 
+- name: Check GitLab token is provided
+  assert:
+    that:
+      - cluster_repo_gitlab_token is defined
+      - cluster_repo_gitlab_token | length > 0
+    fail_msg: "cluster_repo_gitlab_token must be set — provide a GitLab deploy/personal access token"
+
 - name: Check sops age key file exists
   stat:
     path: "{{ sops_age_key_file }}"

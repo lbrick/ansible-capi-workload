@@ -183,6 +183,22 @@
     src: gitops/fleet-kustomization.yaml.j2
     dest: "{{ _fleet_entry_dir }}/kustomization.yaml"
 
+- name: Render gitlab-token-secret.plain.yaml
+  template:
+    src: gitops/gitlab-token-secret.plain.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/gitlab-token-secret.plain.yaml"
+
+- name: Encrypt gitlab-token-secret.yaml
+  command: >-
+    sops --age {{ _age_recipient }}
+    --output {{ _fleet_entry_dir }}/gitlab-token-secret.yaml
+    -e {{ _fleet_entry_dir }}/gitlab-token-secret.plain.yaml
+
+- name: Remove gitlab-token-secret.plain.yaml
+  file:
+    path: "{{ _fleet_entry_dir }}/gitlab-token-secret.plain.yaml"
+    state: absent
+
 # ── Management cluster workload-ks snippet ──────────────────────────────────
 
 - name: Render workload-ks entry snippet

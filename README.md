@@ -1,259 +1,120 @@
-# NeSI RDC CAPI Workload Cluster Role
+# ansible-capi-workload
 
-## Overview
+Generates GitOps fleet entries for CAPI workload clusters on NeSI RDC OpenStack. Produces all files needed to onboard a new cluster into the [reannz-capi-fleet](https://gitlab.com/nesi1/rebase/reannz-capi-fleet) repo.
 
-This repository provides an Ansible role for deploying Cluster API (CAPI) workload clusters on NeSI RDC (Research and Development Cloud) infrastructure. It leverages an existing CAPI management cluster to provision and configure workload clusters using the Kubernetes Cluster API Provider OpenStack.
+## How it works
 
-### Key Features
-- Automated CAPI workload cluster provisioning with OpenStack integration
-- Support for GPU-enabled nodes and workloads
-- Built-in autoscaling with Cluster Autoscaler
-- Multiple Container Network Interface (CNI) options (Calico, Cilium)
-- Integrated monitoring and metrics collection
-- Health checks and security group management
-- Support for Rocky Linux-based Kubernetes node images
-- Compatible with NeSI RDC environment
+Set `generate_fleet_entry: true` and run the role. Instead of provisioning anything, it writes ready-to-commit files to `fleet-output/`:
 
-### Architecture Summary
-This Ansible role generates cluster templates using Jinja2 templates, applies them to the management cluster, and provisions the workload cluster on OpenStack infrastructure. It supports optional components like GPU operators, CNIs, autoscaler, metrics server, health checks, and cloud manager.
+```
+fleet-output/
+├── <cluster_name>/                  # commit as the cluster's own Git repo
+│   ├── kustomization.yaml
+│   ├── ks.yaml
+│   ├── secgroups-tf.yaml
+│   └── config/
+│       ├── namespace.yaml
+│       ├── cloud-config.yaml        # SOPS encrypted
+│       ├── ccm-cloud-config.yaml    # SOPS encrypted
+│       ├── cluster.yaml
+│       ├── control-plane.yaml
+│       ├── workers.yaml
+│       ├── healthchecks.yaml
+│       ├── cluster-resource-set.yaml
+│       ├── autoscaler/
+│       └── secgroups/               # Terraform HCL
+└── <cluster_name>-fleet-entry/      # copy to fleet repo at clusters/workload/<cluster_name>/
+    ├── kustomization.yaml
+    ├── gitrepo.yaml
+    ├── ks.yaml
+    └── gitlab-token-secret.yaml     # SOPS encrypted
+```
 
-### Management Support Matrix
-
-The Management version matrix represents the versions of this Workload repo which are recommended with the Management repo versions
-
-| Management Version   | Workload Version |
-| -------------------- | ---------------- |
-| v0.2.X               | v0.3.X           |
-| v0.4.X               | v0.4.X           |
-
-Related repository: [NeSI RDC CAPI Management Cluster](https://github.com/nesi/nesi.rdc.kind-bootstrap-capi)
-
-The CAPI images are generated from the following image builder repo: [CAPI Images](https://github.com/lbrick/image-builder/tree/2023-nesi_images)
-
-## Table of Contents
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Detailed Setup](#detailed-setup)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Extending Features](#extending-features)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Notes](#notes)
+After generation, the operator:
+1. Pushes `<cluster_name>/` as its own GitLab repo (or copies it into the fleet repo directly)
+2. Copies `<cluster_name>-fleet-entry/` into the fleet repo at `clusters/workload/<cluster_name>/`
+3. Appends `<cluster_name>-workload-ks-entry.yaml` to `clusters/management/workload-ks.yaml`
+4. Opens an MR — Flux does the rest
 
 ## Prerequisites
 
-### Required Access
-- Active NeSI RDC project with OpenStack API access
-- SSH key pair registered in NeSI RDC
-- CAPI management cluster deployed and accessible (see related repository above)
-- Sufficient compute and network quotas for workload cluster deployment
+- Ansible 2.15+
+- `sops` CLI installed and on PATH
+- `~/.config/openstack/clouds.yaml` with application credentials for the target project
+- An age key at `~/.config/sops/age/keys.txt` (or set `sops_age_key_file`)
+- A GitLab deploy token for the new cluster repo
 
-### Required Tools
-- Ansible 2.15+ and ansible-core
-- Python 3.8+
-- OpenStack SDK (`pip install openstacksdk>=1.0.0`)
-- kubectl configured for the management cluster
-
-### Environment Setup
-It is recommended to use a Python virtual environment to isolate dependencies:
+## Quick start
 
 ```bash
-# Create virtual environment
-python3 -m venv ~/capi-workload-venv
-
-# Activate
-source ~/capi-workload-venv/bin/activate
-
-# Install dependencies
-pip install ansible ansible-core openstacksdk
+ansible-playbook your-playbook.yml \
+  -e generate_fleet_entry=true \
+  -e cluster_name=rdc-workload-3 \
+  -e cluster_namespace=nesi-training-prod \
+  -e cluster_network=NeSI-Training-Prod \
+  -e openstack_ssh_key=kahu-key \
+  -e kubernetes_version=v1.35.3 \
+  -e capi_image_name=ubuntu-24-containerd-v1.35.3 \
+  -e cluster_repo_url=https://gitlab.com/nesi1/rebase/demos/rdc-workload-3 \
+  -e cluster_repo_gitlab_token=gldt-xxxxxxxxxxxx
 ```
 
-### OpenStack Credentials
-- Download `clouds.yaml` from NeSI RDC dashboard
-- Place at `~/.config/openstack/clouds.yaml`
-- Use Application Credentials rather than personal credentials for security
+## Key variables
 
-## Quick Start
+| Variable | Default | Description |
+|---|---|---|
+| `generate_fleet_entry` | `false` | Set `true` to generate files instead of provisioning |
+| `fleet_output_dir` | `<playbook_dir>/fleet-output` | Where to write generated files |
+| `cluster_name` | — | Cluster name (required) |
+| `cluster_namespace` | `{{ cluster_rdc_project \| lower }}` | Kubernetes namespace |
+| `kubernetes_version` | `v1.30.5` | Kubernetes version |
+| `capi_image_name` | — | OS image name in OpenStack |
+| `cluster_control_plane_count` | `1` | Control plane node count |
+| `control_plane_flavor` | `balanced1.2cpu4ram` | Control plane VM flavor |
+| `cluster_worker_count` | `2` | Initial worker count (autoscaler min) |
+| `cluster_max_worker_count` | `3` | Autoscaler max workers |
+| `worker_flavour` | `balanced1.2cpu4ram` | Worker VM flavor |
+| `cluster_network` | `{{ cluster_rdc_project }}` | OpenStack network name |
+| `cluster_external_network_id` | `3f405cc9-...` | External network UUID |
+| `openstack_ssh_key` | — | OpenStack keypair name (required) |
+| `cluster_pod_cidr` | `192.168.0.0/16` | Pod network CIDR |
+| `cni_provider` | `calico` | CNI: `calico` or `cilium` |
+| `kube_oidc_auth` | `false` | Enable OIDC on the API server |
+| `capi_managed_secgroups` | `false` | Let CAPO manage secgroups (skips Terraform HCL) |
+| `source_ips` | `[163.7.144.0/21]` | IPs allowed to reach the Kubernetes API |
+| `sops_age_key_file` | `~/.config/sops/age/keys.txt` | Age key used to encrypt generated secrets |
+| `clouds_yaml_local_location` | `~/.config/openstack/clouds.yaml` | Source clouds.yaml |
+| `clouds_yaml_cloud` | `openstack` | Cloud entry name in clouds.yaml |
+| `cluster_repo_url` | `https://gitlab.com/nesi1/rebase/demos/{{ cluster_name }}` | GitLab URL of the cluster repo |
+| `cluster_repo_gitlab_username` | `git` | GitLab deploy token username |
+| `cluster_repo_gitlab_token` | — | GitLab deploy token (required) |
 
-For experienced users:
+### GPU clusters
 
-1. **Setup Environment:**
-   ```bash
-   # Activate virtual environment
-   source ~/capi-workload-venv/bin/activate
-   ```
+| Variable | Default | Description |
+|---|---|---|
+| `enable_gpu_nodes` | `false` | Add a GPU MachineDeployment |
+| `gpu_worker_flavour` | `gpu1.40cpu200ram.a40.1g.48gb` | GPU worker flavor |
+| `gpu_kubernetes_version` | `v1.33.3` | K8s version for GPU nodes |
+| `capi_gpu_image_name` | `rocky-9-containerd-hpc-nvidia-v1.33.3` | GPU node OS image |
 
-2. **Configure Variables:**
-   Copy `defaults/main.yml` to your playbook vars and customize:
-
-   ```bash
-   cp defaults/main.yml playbook_vars.yml
-   # Edit with your values
-   ```
-
-3. **Deploy:**
-   ```bash
-   ansible-playbook -e @playbook_vars.yml main.yml
-   ```
-
-The deployment will create the workload cluster with configured components.
-
-## Detailed Setup
-
-### Variables Configuration
-
-The role uses variables defined in `defaults/main.yml`. Key variables include:
-
-- `kubernetes_version`: Target Kubernetes version (e.g., `v1.31.1`)
-- `capi_image_name`: Pre-built CAPI image name
-- `cluster_name`: Name of the workload cluster
-- `cluster_namespace`: Namespace for the cluster
-- `cluster_control_plane_count`: Number of control plane nodes
-- `control_plane_flavor`: VM flavor for control plane
-- `cluster_worker_count`: Number of worker nodes
-- `worker_flavor`: VM flavor for workers
-- `cluster_node_cidr`: Node network CIDR
-- `cluster_pod_cidr`: Pod network CIDR
-- `enable_gpu_nodes`: Enable GPU support
-- `cluster_max_worker_count`: Enable autoscaling if > cluster_worker_count
-
-### Supported Kubernetes Versions and Images
-
-Available CAPI images (Rocky 9 base):
+## Available images
 
 ```
-rocky-9-containerd-v1.28.14
-rocky-9-containerd-v1.29.7
-rocky-9-containerd-v1.30.5
-rocky-9-containerd-v1.31.1
-rocky-9-containerd-v1.31.6
-rocky-9-containerd-v1.32.2
-rocky-9-containerd-v1.32.7
+ubuntu-24-containerd-v1.35.3
 rocky-9-containerd-v1.33.3
+rocky-9-containerd-v1.32.7
+rocky-9-containerd-v1.32.2
+rocky-9-containerd-v1.31.6
+rocky-9-containerd-v1.30.5
+rocky-9-containerd-hpc-nvidia-v1.33.3   # GPU
 ```
 
-## Configuration
+## Emergency override path
 
-### CNI Options
-- Calico (default)
-- Cilium
-- Configure via `cni_type` variable
-
-### GPU Configuration
-If `enable_gpu_nodes` is true:
-- Deploys GPU node with NVIDIA operator and drivers
-- Includes MPS configuration for multi-process service
-- Uses flavor `gpu1.44cpu240ram.a40.1g.48gb`
-
-### Autoscaling
-Set `cluster_max_worker_count > cluster_worker_count` to enable Cluster Autoscaler.
-
-### Security Groups
-- Managed via Ansible by default (`capi_managed_secgroups: true`)
-- Creates rules for cluster communication and external access from specified source IPs
-
-## Deployment
-
-### Using the Role
-
-Include this role in your Ansible playbook:
-
-```yaml
-- hosts: localhost
-  roles:
-    - role: ansible-capi-workload
-      vars:
-        kubernetes_version: v1.31.1
-        cluster_name: my-workload-cluster
-        # ... other variables
-```
-
-### Manual Execution
-
-Run directly:
+The original direct-provisioning tasks (`tasks/main.yml`) are retained as a break-glass path for when Flux is suspended or the management cluster needs manual recovery. See `gitops-migration-plan.md §13` for guidance. Do not use this path for routine cluster creation.
 
 ```bash
-ansible-playbook main.yml -e "kubernetes_version=v1.31.1 cluster_name=my-cluster"
+# Emergency only — bypasses GitOps
+ansible-playbook your-playbook.yml -e @vars/rdc-workload-1.yml --skip-tags cni,metrics-server
 ```
-
-### Verification
-
-After deployment:
-
-```bash
-kubectl get clusters -A
-kubectl get secrets -n <cluster-namespace> <cluster-name>-kubeconfig -o jsonpath='{.data.value}' | base64 -d > kubeconfig
-kubectl --kubeconfig=kubeconfig get nodes
-```
-
-## Extending Features
-
-### GPU Support
-Set `enable_gpu_nodes: true` to add GPU nodes with:
-- NVIDIA GPU Operator
-- Multi-Process Service configuration
-- Automated driver installation
-
-### Cluster Autoscaler
-Configured when `cluster_max_worker_count > cluster_worker_count`
-
-### Metrics Server
-Deployed by default to enable `kubectl top` commands
-
-### Health Checks
-Adds HTTP health checks for control plane and worker nodes via OpenStack load balancers
-
-### Cloud Manager
-Integrates OpenStack Cloud Controller Manager for load balancers, network services, and storage integration
-
-### Multiple CNIs
-- **Calico**: Robust networking with network policies and optional operator installation
-- **Cilium**: High-performance networking with eBPF-based observability
-
-## Troubleshooting
-
-### Common Issues
-
-**Management Cluster Inaccessible:**
-- Verify kubectl context points to management cluster
-- Check network connectivity to management cluster
-
-**OpenStack Quota Exceeded:**
-- Confirm sufficient compute, network, and security group quotas
-- Check flavor availability in your project
-
-**CAPI Image Mismatch:**
-- Ensure `capi_image_name` matches `kubernetes_version`
-- Verify image availability in NeSI RDC
-
-**GPU Node Provisioning:**
-- Confirm GPU flavors are available in your project
-- Check NVIDIA operator installation logs
-
-**Security Group Creation:**
-- Verify OpenStack permissions for security group management
-- Confirm no name conflicts
-
-### Logs and Debugging
-- Ansible playbook output for deployment steps
-- Kubernetes cluster creation logs: `kubectl logs -n capi-system deployment/cluster-api-controller-manager`
-- Workload cluster logs after provisioning: `kubectl --kubeconfig=kubeconfig logs`
-
-### Getting Help
-- Review NeSI RDC documentation for infrastructure-specific issues
-- Check upstream CAPI OpenStack provider documentation
-- Ensure compatible Kubernetes and CAPI versions
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit pull requests for review
-4. Follow existing code structure and naming conventions
-
-## Notes
-
-This setup is specifically designed for NeSI RDC OpenStack environment. For other cloud providers, adjust variables and configuration accordingly while maintaining the CAPI-based provisioning approach.
-
-Support for GPU workloads requires access to GPU flavor's within your NeSI RDC project space.
