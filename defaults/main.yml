@@ -1,6 +1,6 @@
 ---
 # Fleet entry generator — set true to generate GitOps files instead of provisioning
-generate_fleet_entry: false
+generate_fleet_entry: true
 
 fleet_git_source: reannz-capi-fleet
 fleet_cluster_path: "clusters/workload/{{ cluster_name }}"
