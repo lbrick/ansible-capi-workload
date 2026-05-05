@@ -199,6 +199,22 @@
     path: "{{ _fleet_entry_dir }}/gitlab-token-secret.plain.yaml"
     state: absent
 
+- name: Render tf-credentials.plain.yaml
+  template:
+    src: gitops/tf-credentials.plain.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/tf-credentials.plain.yaml"
+
+- name: Encrypt tf-credentials.yaml
+  command: >-
+    sops --age {{ _age_recipient }}
+    --output {{ _fleet_entry_dir }}/tf-credentials.yaml
+    -e {{ _fleet_entry_dir }}/tf-credentials.plain.yaml
+
+- name: Remove tf-credentials.plain.yaml
+  file:
+    path: "{{ _fleet_entry_dir }}/tf-credentials.plain.yaml"
+    state: absent
+
 # ── Management cluster workload-ks snippet ──────────────────────────────────
 
 - name: Render workload-ks entry snippet
