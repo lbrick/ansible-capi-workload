@@ -17,6 +17,8 @@ spec:
       kind: ConfigMap
     - name: metrics-server
       kind: ConfigMap
+    - name: reflector
+      kind: ConfigMap
 {% if kube_oidc_auth | default(false) | bool %}
     - name: oidc-rbac
       kind: ConfigMap
