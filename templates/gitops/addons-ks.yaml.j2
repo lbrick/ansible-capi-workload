@@ -24,7 +24,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: {{ cluster_name }}-velero-credentials
-  namespace: flux-system
+  namespace: {{ cluster_namespace }}
 spec:
   interval: 10m
   path: ./config/overlays/velero
@@ -32,7 +32,6 @@ spec:
   kubeConfig:
     secretRef:
       name: {{ cluster_name }}-kubeconfig
-      namespace: {{ cluster_namespace }}
   decryption:
     provider: sops
     secretRef:
@@ -61,6 +60,7 @@ spec:
       namespace: {{ cluster_namespace }}
 {% if enable_velero %}
     - name: {{ cluster_name }}-velero-credentials
+      namespace: {{ cluster_namespace }}
 {% endif %}
   sourceRef:
     kind: GitRepository
