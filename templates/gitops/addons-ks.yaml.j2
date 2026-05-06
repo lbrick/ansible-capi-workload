@@ -32,6 +32,7 @@ spec:
   kubeConfig:
     secretRef:
       name: {{ cluster_name }}-kubeconfig
+      namespace: {{ cluster_namespace }}
   decryption:
     provider: sops
     secretRef:
