@@ -31,9 +31,7 @@ spec:
         volumeMounts:
           - mountPath: /target
             name: plugins
-    kubectl:
-      image:
-        tag: "1.33"
+    upgradeCRDs: false
     credentials:
       useSecret: true
       existingSecret: openstack-credentials
