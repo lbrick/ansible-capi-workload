@@ -54,6 +54,22 @@
 - `secgroups-control-plane.yml` (~714 tok)
 - `secgroups-worker.yml` (~796 tok)
 
+## tasks/
+
+- `generate-fleet-entry.yml` — Renders all GitOps output files for a new cluster (CAPI manifests, Flux KSs, secrets, overlays). Updated to generate config/overlays/ addon files and fleet entry addons-ks.yaml.
+
+## templates/gitops/
+
+- `addons-ks.yaml.j2` — Fleet entry: bootstrap + addons Flux Kustomization CRs for cluster addon overlays
+- `overlays-bootstrap-namespace.yaml.j2` — Namespace resource for workload cluster bootstrap (config/overlays/bootstrap/namespace.yaml)
+- `overlays-bootstrap-kustomization.yaml.j2` — Kustomize kustomization listing namespace.yaml (config/overlays/bootstrap/kustomization.yaml)
+- `overlays-kustomization.yaml.j2` — Kustomize kustomization listing enabled addon HelmRelease files (config/overlays/kustomization.yaml)
+- `overlays-cinder-csi-helmrelease.yaml.j2` — Self-contained Cinder CSI HelmRelease for workload cluster (config/overlays/cinder-csi-helmrelease.yaml)
+- `fleet-kustomization.yaml.j2` — Fleet entry kustomization; conditionally includes addons-ks.yaml when any addon enabled
+- `ks.yaml.j2` — Cluster repo: cluster + autoscaler Flux Kustomization CRs (path ./config, ./config/autoscaler)
+- `kustomization-root.yaml.j2` — Cluster repo root kustomization listing ks.yaml + secgroups-tf.yaml
+- `fleet-ks.yaml.j2` — Fleet entry: cluster-root KS with path ./ pointing to cluster GitRepository
+
 ## templates/
 
 - `autoscaler-deployment.yml.j2` (~985 tok)

@@ -18,6 +18,11 @@ cluster_repo_gitlab_username: git
 cluster_repo_gitlab_token: ""
 
 
+# Addon selection — controls what gets generated in config/overlays/ and addons-ks.yaml
+enable_cinder_csi: true
+enable_envoy_gateway: false
+enable_velero: false
+
 kubernetes_version: v1.30.5
 capi_image_name: rocky-9-containerd-v1.30.5 #ubuntu-2204-kube-v1.26.7-ca
 

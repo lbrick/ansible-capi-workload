@@ -51,6 +51,16 @@
     - "{{ _cluster_dir }}/config/secgroups"
     - "{{ _fleet_entry_dir }}"
 
+- name: Create overlay directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ _cluster_dir }}/config/overlays"
+    - "{{ _cluster_dir }}/config/overlays/bootstrap"
+  when: enable_cinder_csi or enable_envoy_gateway or enable_velero
+
 # ── CAPI cluster manifests ──────────────────────────────────────────────────
 
 - name: Render namespace.yaml
@@ -149,6 +159,44 @@
     src: gitops/secgroups-versions.tf
     dest: "{{ _cluster_dir }}/config/secgroups/versions.tf"
 
+# ── Overlay addon files (cluster repo) ─────────────────────────────────────
+
+- name: Render config/overlays/bootstrap/namespace.yaml
+  template:
+    src: gitops/overlays-bootstrap-namespace.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/bootstrap/namespace.yaml"
+  when: enable_cinder_csi or enable_envoy_gateway or enable_velero
+
+- name: Render config/overlays/bootstrap/kustomization.yaml
+  template:
+    src: gitops/overlays-bootstrap-kustomization.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/bootstrap/kustomization.yaml"
+  when: enable_cinder_csi or enable_envoy_gateway or enable_velero
+
+- name: Render config/overlays/kustomization.yaml
+  template:
+    src: gitops/overlays-kustomization.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/kustomization.yaml"
+  when: enable_cinder_csi or enable_envoy_gateway or enable_velero
+
+- name: Render config/overlays/cinder-csi-helmrelease.yaml
+  template:
+    src: gitops/overlays-cinder-csi-helmrelease.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/cinder-csi-helmrelease.yaml"
+  when: enable_cinder_csi
+
+- name: Render config/overlays/envoy-gateway-helmrelease.yaml
+  template:
+    src: gitops/overlays-envoy-gateway-helmrelease.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/envoy-gateway-helmrelease.yaml"
+  when: enable_envoy_gateway
+
+- name: Render config/overlays/velero-helmrelease.yaml
+  template:
+    src: gitops/overlays-velero-helmrelease.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/velero-helmrelease.yaml"
+  when: enable_velero
+
 # ── Flux resources (cluster repo root) ─────────────────────────────────────
 
 - name: Render root kustomization.yaml
@@ -167,6 +215,12 @@
     dest: "{{ _cluster_dir }}/secgroups-tf.yaml"
 
 # ── Fleet repo entry (clusters/workload/<cluster_name>/) ────────────────────
+
+- name: Render fleet entry addons-ks.yaml
+  template:
+    src: gitops/addons-ks.yaml.j2
+    dest: "{{ _fleet_entry_dir }}/addons-ks.yaml"
+  when: enable_cinder_csi or enable_envoy_gateway or enable_velero
 
 - name: Render fleet entry gitrepo.yaml
   template:

@@ -3,5 +3,8 @@ kind: Kustomization
 resources:
   - gitrepo.yaml
   - ks.yaml
+{% if enable_cinder_csi or enable_envoy_gateway or enable_velero %}
+  - addons-ks.yaml
+{% endif %}
   - gitlab-token-secret.yaml
   - tf-credentials.yaml

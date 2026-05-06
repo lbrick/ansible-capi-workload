@@ -1,0 +1,39 @@
+---
+# Creates {{ cluster_namespace }} namespace on the workload cluster.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-addons-bootstrap
+  namespace: {{ cluster_namespace }}
+spec:
+  interval: 10m
+  path: ./config/overlays/bootstrap
+  prune: true
+  kubeConfig:
+    secretRef:
+      name: {{ cluster_name }}-kubeconfig
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+    namespace: flux-system
+---
+# Applies HelmReleases (cluster addon overlay) to management cluster.
+# helm-controller uses spec.kubeConfig in each HelmRelease to deploy onto {{ cluster_name }}.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-addons
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./config/overlays
+  prune: true
+  dependsOn:
+    - name: {{ cluster_name }}-root
+    - name: addons
+    - name: {{ cluster_name }}-addons-bootstrap
+      namespace: {{ cluster_namespace }}
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+    namespace: flux-system
