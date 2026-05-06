@@ -61,6 +61,13 @@
     - "{{ _cluster_dir }}/config/overlays/bootstrap"
   when: enable_cinder_csi or enable_envoy_gateway or enable_velero
 
+- name: Create velero overlay directory
+  file:
+    path: "{{ _cluster_dir }}/config/overlays/velero"
+    state: directory
+    mode: '0755'
+  when: enable_velero
+
 # ── CAPI cluster manifests ──────────────────────────────────────────────────
 
 - name: Render namespace.yaml
@@ -195,6 +202,18 @@
   template:
     src: gitops/overlays-velero-helmrelease.yaml.j2
     dest: "{{ _cluster_dir }}/config/overlays/velero-helmrelease.yaml"
+  when: enable_velero
+
+- name: Render config/overlays/velero/velero-namespace.yaml
+  template:
+    src: gitops/overlays-velero-namespace.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/velero/velero-namespace.yaml"
+  when: enable_velero
+
+- name: Render config/overlays/velero/kustomization.yaml
+  template:
+    src: gitops/overlays-velero-kustomization.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/velero/kustomization.yaml"
   when: enable_velero
 
 # ── Flux resources (cluster repo root) ─────────────────────────────────────

@@ -1,0 +1,52 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: velero
+  namespace: {{ cluster_namespace }}
+spec:
+  interval: 10m
+  releaseName: velero
+  targetNamespace: velero
+  storageNamespace: velero
+  install:
+    createNamespace: false
+  upgrade:
+    cleanupOnFail: true
+  kubeConfig:
+    secretRef:
+      name: {{ cluster_name }}-kubeconfig
+  chart:
+    spec:
+      chart: velero
+      version: ">=8.0.0 <9.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: velero
+        namespace: flux-system
+  values:
+    initContainers:
+      - name: velero-plugin-for-openstack
+        image: ghcr.io/lirt/velero-plugin-for-openstack:v0.8.0
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - mountPath: /target
+            name: plugins
+    credentials:
+      useSecret: true
+      existingSecret: openstack-credentials
+    configuration:
+      backupStorageLocation:
+        - name: default
+          provider: community.openstack.org/openstack
+          bucket: {{ velero_backup_bucket }}
+          config:
+            cloud: {{ clouds_yaml_cloud }}
+            region: {{ _region }}
+            credentialsFile: /credentials/clouds.yaml
+      volumeSnapshotLocation:
+        - name: default
+          provider: community.openstack.org/openstack
+          config:
+            cloud: {{ clouds_yaml_cloud }}
+            region: {{ _region }}
+            credentialsFile: /credentials/clouds.yaml

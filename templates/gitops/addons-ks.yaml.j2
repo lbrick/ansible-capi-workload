@@ -16,6 +16,31 @@ spec:
     kind: GitRepository
     name: {{ cluster_name }}
     namespace: flux-system
+{% if enable_velero %}
+---
+# Deploys velero namespace + openstack-credentials secret to {{ cluster_name }}.
+# Runs in flux-system so it can access the sops-age decryption secret.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ cluster_name }}-velero-credentials
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./config/overlays/velero
+  prune: true
+  kubeConfig:
+    secretRef:
+      name: {{ cluster_name }}-kubeconfig
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+  sourceRef:
+    kind: GitRepository
+    name: {{ cluster_name }}
+    namespace: flux-system
+{% endif %}
 ---
 # Applies HelmReleases (cluster addon overlay) to management cluster.
 # helm-controller uses spec.kubeConfig in each HelmRelease to deploy onto {{ cluster_name }}.
@@ -33,6 +58,9 @@ spec:
     - name: addons
     - name: {{ cluster_name }}-addons-bootstrap
       namespace: {{ cluster_namespace }}
+{% if enable_velero %}
+    - name: {{ cluster_name }}-velero-credentials
+{% endif %}
   sourceRef:
     kind: GitRepository
     name: {{ cluster_name }}
