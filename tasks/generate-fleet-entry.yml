@@ -216,10 +216,10 @@
     dest: "{{ _cluster_dir }}/config/overlays/velero/kustomization.yaml"
   when: enable_velero
 
-- name: Render config/overlays/velero/reflected-credentials.yaml
+- name: Render config/overlays/velero/openstack-credentials.yaml
   template:
-    src: gitops/overlays-velero-reflected-credentials.yaml.j2
-    dest: "{{ _cluster_dir }}/config/overlays/velero/reflected-credentials.yaml"
+    src: gitops/overlays-velero-openstack-credentials.yaml.j2
+    dest: "{{ _cluster_dir }}/config/overlays/velero/openstack-credentials.yaml"
   when: enable_velero
 
 # ── Flux resources (cluster repo root) ─────────────────────────────────────
