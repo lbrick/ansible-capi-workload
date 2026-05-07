@@ -9,3 +9,15 @@ resources:
   - workers.yaml
   - healthchecks.yaml
   - cluster-resource-set.yaml
+{% if enable_velero %}
+patches:
+  - target:
+      kind: Secret
+      name: {{ cluster_name }}-cloud-config
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+          reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "velero"
+{% endif %}
