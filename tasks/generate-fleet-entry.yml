@@ -216,12 +216,6 @@
     dest: "{{ _cluster_dir }}/config/overlays/velero/kustomization.yaml"
   when: enable_velero
 
-- name: Render config/overlays/velero/patch-cloud-config-reflector.yaml
-  template:
-    src: gitops/overlays-velero-patch-cloud-config-reflector.yaml.j2
-    dest: "{{ _cluster_dir }}/config/overlays/velero/patch-cloud-config-reflector.yaml"
-  when: enable_velero
-
 - name: Render config/overlays/velero/reflected-credentials.yaml
   template:
     src: gitops/overlays-velero-reflected-credentials.yaml.j2

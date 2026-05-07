@@ -4,8 +4,3 @@ resources:
   - velero-namespace.yaml
   - ../../cloud-config.yaml
   - reflected-credentials.yaml
-patches:
-  - path: patch-cloud-config-reflector.yaml
-    target:
-      kind: Secret
-      name: {{ cluster_name }}-cloud-config
