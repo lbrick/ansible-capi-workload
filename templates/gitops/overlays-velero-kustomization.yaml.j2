@@ -3,25 +3,9 @@ kind: Kustomization
 resources:
   - velero-namespace.yaml
   - ../../cloud-config.yaml
-  - openstack-credentials.yaml
-replacements:
-  - source:
+  - reflected-credentials.yaml
+patches:
+  - path: patch-cloud-config-reflector.yaml
+    target:
       kind: Secret
       name: {{ cluster_name }}-cloud-config
-      fieldPath: stringData.clouds\.yaml
-    targets:
-      - select:
-          kind: Secret
-          name: openstack-credentials
-        fieldPaths:
-          - stringData.clouds\.yaml
-  - source:
-      kind: Secret
-      name: {{ cluster_name }}-cloud-config
-      fieldPath: stringData.cacert
-    targets:
-      - select:
-          kind: Secret
-          name: openstack-credentials
-        fieldPaths:
-          - stringData.cacert
