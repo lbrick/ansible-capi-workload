@@ -97,3 +97,73 @@ spec:
       rootVolume:
         sizeGiB: {{ worker_volume_size }}
 {% endif %}
+{% if enable_gpu_nodes | default(false) | bool %}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: {{ cluster_name }}-md-gpu-0
+  namespace: {{ cluster_namespace }}
+spec:
+  clusterName: {{ cluster_name }}
+  replicas: {{ cluster_gpu_worker_count }}
+  selector:
+    matchLabels: null
+  template:
+{% if gpu_operator == "hami" %}
+    metadata:
+      labels:
+        gpu: "on"
+{% endif %}
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: {{ cluster_name }}-md-0
+      clusterName: {{ cluster_name }}
+      failureDomain: nova
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        name: {{ cluster_name }}-md-gpu-0
+      version: {{ gpu_kubernetes_version }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: {{ cluster_name }}-md-gpu-0
+  namespace: {{ cluster_namespace }}
+spec:
+  template:
+    spec:
+      flavor: {{ gpu_worker_flavour }}
+      image:
+        filter:
+          name: {{ capi_gpu_image_name }}
+      sshKeyName: {{ openstack_ssh_key }}
+      securityGroups:
+        - filter:
+            name: default
+{% if not (capi_managed_secgroups | default(false) | bool) %}
+        - filter:
+            name: k8s-cluster-{{ cluster_namespace }}-{{ cluster_name }}-secgroup-worker
+{% endif %}
+{% for secgroup in additional_cluster_secgroups | default([]) %}
+        - filter:
+            name: {{ secgroup }}
+{% endfor %}
+      ports:
+        - network:
+            filter:
+              name: {{ cluster_network }}
+{% for network in additional_cluster_networks | default([]) %}
+        - network:
+            filter:
+              name: {{ network }}
+{% endfor %}
+{% if (gpu_worker_volume_size | default(0) | int) > 30 %}
+      rootVolume:
+        sizeGiB: {{ gpu_worker_volume_size }}
+{% endif %}
+{% endif %}

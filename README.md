@@ -14,19 +14,30 @@ fleet-output/
 │   ├── secgroups-tf.yaml
 │   └── config/
 │       ├── namespace.yaml
-│       ├── cloud-config.yaml        # SOPS encrypted
+│       ├── cloud-config.yaml        # SOPS encrypted (reflector annotations baked in if enable_velero)
 │       ├── ccm-cloud-config.yaml    # SOPS encrypted
 │       ├── cluster.yaml
 │       ├── control-plane.yaml
-│       ├── workers.yaml
+│       ├── workers.yaml             # includes GPU MachineDeployment if enable_gpu_nodes
 │       ├── healthchecks.yaml
 │       ├── cluster-resource-set.yaml
 │       ├── autoscaler/
-│       └── secgroups/               # Terraform HCL
+│       ├── secgroups/               # Terraform HCL
+│       └── overlays/                # generated when any addon is enabled
+│           ├── kustomization.yaml
+│           ├── bootstrap/
+│           │   ├── namespace.yaml
+│           │   └── kustomization.yaml
+│           ├── velero-helmrelease.yaml        # when enable_velero
+│           └── velero/                        # when enable_velero
+│               ├── velero-namespace.yaml
+│               ├── reflected-credentials.yaml
+│               └── kustomization.yaml
 └── <cluster_name>-fleet-entry/      # copy to fleet repo at clusters/workload/<cluster_name>/
     ├── kustomization.yaml
     ├── gitrepo.yaml
     ├── ks.yaml
+    ├── addons-ks.yaml               # generated when any addon is enabled
     └── gitlab-token-secret.yaml     # SOPS encrypted
 ```
 
@@ -89,14 +100,33 @@ ansible-playbook your-playbook.yml \
 | `cluster_repo_gitlab_username` | `git` | GitLab deploy token username |
 | `cluster_repo_gitlab_token` | — | GitLab deploy token (required) |
 
+### Add-on variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `enable_cinder_csi` | `false` | Generate Cinder CSI HelmRelease overlay |
+| `enable_envoy_gateway` | `false` | Generate Envoy Gateway HelmRelease overlay |
+| `enable_velero` | `true` | Generate Velero HelmRelease overlay + credentials KS |
+| `velero_backup_bucket` | `REPLACE_ME_<cluster_name>` | Swift bucket name for Velero backups |
+
+When `enable_velero: true`, the generated `cloud-config.yaml` (SOPS-encrypted) carries emberstack reflector annotations so the workload cluster's `velero` namespace receives a copy of the OpenStack credentials automatically. No separate credentials file is needed — the plugin reads from `/etc/openstack/clouds.yaml` via `extraVolumes`.
+
 ### GPU clusters
 
 | Variable | Default | Description |
 |---|---|---|
-| `enable_gpu_nodes` | `false` | Add a GPU MachineDeployment |
-| `gpu_worker_flavour` | `gpu1.40cpu200ram.a40.1g.48gb` | GPU worker flavor |
-| `gpu_kubernetes_version` | `v1.33.3` | K8s version for GPU nodes |
-| `capi_gpu_image_name` | `rocky-9-containerd-hpc-nvidia-v1.33.3` | GPU node OS image |
+| `enable_gpu_nodes` | `false` | Add a GPU MachineDeployment (`md-gpu-0`) alongside standard workers |
+| `cluster_gpu_worker_count` | `1` | Fixed GPU worker count (no autoscaling) |
+| `gpu_worker_flavour` | `gpu1.40cpu200ram.a40.1g.48gb` | GPU worker VM flavor |
+| `gpu_worker_volume_size` | `30` | Root volume size GiB (rootVolume block only emitted if > 30) |
+| `gpu_kubernetes_version` | `v1.33.3` | K8s version for GPU nodes (may differ from standard workers) |
+| `capi_gpu_image_name` | `rocky-9-containerd-hpc-nvidia-v1.33.3` | GPU node OS image (HPC image with pre-installed drivers) |
+| `gpu_operator` | `nvidia` | GPU operator type: `nvidia` or `hami` |
+| `nvidia_gpu_operator_version` | `25.3.1` | NVIDIA GPU Operator chart version |
+| `nvidia_container_toolkit_version` | `1.17.8` | NVIDIA Container Toolkit version (appends `-ubi8` for Rocky) |
+| `nvidia_gpu_sharing_type` | `mps` | GPU sharing mode: `mps` or `time-slicing` |
+
+GPU workers do not autoscale — `replicas` is fixed at `cluster_gpu_worker_count`. The NVIDIA GPU Operator base (`infrastructure/apps/base/nvidia-gpu-operator/`) in the fleet repo includes an MPS ConfigMap pre-wired to the HelmRelease. To deploy the operator to a workload cluster, add a `nvidia-gpu-operator-helmrelease.yaml` overlay and reference the base from the cluster's `overlays/kustomization.yaml`.
 
 ## Available images
 

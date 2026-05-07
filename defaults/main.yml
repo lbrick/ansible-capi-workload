@@ -19,7 +19,7 @@ cluster_repo_gitlab_token: ""
 
 
 # Addon selection — controls what gets generated in config/overlays/ and addons-ks.yaml
-enable_cinder_csi: true
+enable_cinder_csi: false
 enable_envoy_gateway: false
 enable_velero: true
 

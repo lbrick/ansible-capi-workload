@@ -155,20 +155,26 @@ ansible-playbook -i tests/inventory.ini tests/test_cleanup.yml
 
 ## Available CAPI Images
 
-Supported Rocky 9-based Kubernetes images:
+Standard Kubernetes images:
 
 ```
-rocky-9-containerd-v1.28.14
-rocky-9-containerd-v1.29.7
-rocky-9-containerd-v1.30.5
-rocky-9-containerd-v1.31.1
-rocky-9-containerd-v1.31.6
-rocky-9-containerd-v1.32.2
-rocky-9-containerd-v1.32.7
+ubuntu-24-containerd-v1.35.3
 rocky-9-containerd-v1.33.3
+rocky-9-containerd-v1.32.7
+rocky-9-containerd-v1.32.2
+rocky-9-containerd-v1.31.6
+rocky-9-containerd-v1.30.5
+rocky-9-containerd-v1.29.7
+rocky-9-containerd-v1.28.14
 ```
 
-**Important**: Ensure the `capi_image_name` matches the `kubernetes_version` exactly.
+GPU images (HPC, pre-installed NVIDIA drivers):
+
+```
+rocky-9-containerd-hpc-nvidia-v1.33.3   # use with gpu_kubernetes_version: v1.33.3
+```
+
+**Important**: Ensure `capi_image_name` matches `kubernetes_version` exactly. GPU images use `capi_gpu_image_name` and `gpu_kubernetes_version` — these may differ from the standard worker version.
 
 ## Test Scenarios
 
@@ -187,8 +193,9 @@ The `test_assert.yml` playbook validates:
 
 You can modify test scenarios by adjusting variables:
 
-- **GPU Tests**: Set `enable_gpu_nodes: true`
-- **CNI Tests**: Change `cni_type` to test Calico vs Cilium
+- **GPU Tests**: Set `enable_gpu_nodes: true`, `capi_gpu_image_name: rocky-9-containerd-hpc-nvidia-v1.33.3`, `gpu_kubernetes_version: v1.33.3`
+- **Velero Tests**: Set `enable_velero: true`, `velero_backup_bucket: <your-swift-bucket>`
+- **CNI Tests**: Change `cni_provider` to test Calico vs Cilium
 - **Autoscaling Tests**: Set `cluster_max_worker_count > cluster_worker_count`
 - **Security Group Tests**: Toggle `capi_managed_secgroups`
 

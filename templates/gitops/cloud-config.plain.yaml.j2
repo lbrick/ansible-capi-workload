@@ -10,6 +10,11 @@ metadata:
   namespace: {{ cluster_namespace }}
   labels:
     clusterctl.cluster.x-k8s.io/move: "true"
+{% if enable_velero %}
+  annotations:
+    reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+    reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: velero
+{% endif %}
 stringData:
   cacert: ""
   clouds.yaml: |
