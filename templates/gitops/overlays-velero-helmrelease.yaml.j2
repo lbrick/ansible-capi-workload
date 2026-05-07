@@ -33,8 +33,18 @@ spec:
             name: plugins
     upgradeCRDs: false
     credentials:
-      useSecret: true
-      existingSecret: openstack-credentials
+      useSecret: false
+    extraVolumes:
+      - name: openstack-clouds
+        secret:
+          secretName: openstack-credentials
+          items:
+            - key: clouds.yaml
+              path: clouds.yaml
+    extraVolumeMounts:
+      - name: openstack-clouds
+        mountPath: /etc/openstack
+        readOnly: true
     configuration:
       backupStorageLocation:
         - name: default
@@ -43,11 +53,9 @@ spec:
           config:
             cloud: {{ clouds_yaml_cloud }}
             region: {{ _region }}
-            credentialsFile: /credentials/clouds.yaml
       volumeSnapshotLocation:
         - name: default
           provider: community.openstack.org/openstack
           config:
             cloud: {{ clouds_yaml_cloud }}
             region: {{ _region }}
-            credentialsFile: /credentials/clouds.yaml
